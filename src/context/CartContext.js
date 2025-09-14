@@ -48,15 +48,15 @@ export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
   const addToCart = (product, color, size, quantity = 1) => {
-    const cartId = `${product.id}-${color}-${size}-${Date.now()}`;
+    const cartId = `${product._id}-${color}-${size}-${Date.now()}`;
     dispatch({
       type: 'ADD_TO_CART',
       payload: {
         cartId,
-        id: product.id,
-        title: product.title,
-        price: product.price,
-        image: product.images[0],
+        id: product._id,
+        title: product.name,
+        price: product.salePrice,
+        image: product.images && product.images.length > 0 && product.images[0] !== 'undefined' ? `http://localhost:5000${product.images[0]}` : '/placeholder-image.jpg',
         color,
         size,
         quantity

@@ -3,6 +3,204 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Split Horizontal Fill Animation */
+.button-split-fill {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: color 0.4s ease;
+}
+
+.button-split-fill::before,
+.button-split-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: width 0.4s ease;
+  z-index: -1;
+}
+
+.button-split-fill::before {
+  left: 0;
+}
+
+.button-split-fill::after {
+  right: 0;
+}
+
+.button-split-fill:hover::before,
+.button-split-fill:hover::after {
+  width: 50%;
+}
+
+/* Primary Button Split Fill */
+.button-split-primary {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: color 0.4s ease;
+}
+
+.button-split-primary::before,
+.button-split-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.15);
+  transition: width 0.4s ease;
+  z-index: -1;
+}
+
+.button-split-primary::before {
+  left: 0;
+}
+
+.button-split-primary::after {
+  right: 0;
+}
+
+.button-split-primary:hover::before,
+.button-split-primary:hover::after {
+  width: 50%;
+}
+
+/* Secondary Button Split Fill */
+.button-split-secondary {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: all 0.4s ease;
+}
+
+.button-split-secondary::before,
+.button-split-secondary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 100%;
+  background: #dc2626;
+  transition: width 0.4s ease;
+  z-index: -1;
+}
+
+.button-split-secondary::before {
+  left: 0;
+}
+
+.button-split-secondary::after {
+  right: 0;
+}
+
+.button-split-secondary:hover::before,
+.button-split-secondary:hover::after {
+  width: 50%;
+}
+
+.button-split-secondary:hover {
+  color: white;
+}
+
+/* Legacy slide effect - keeping for compatibility */
+.button-slide-effect {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.button-slide-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+  z-index: -1;
+}
+
+.button-slide-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: right 0.5s;
+  z-index: -1;
+}
+
+.button-slide-effect:hover::before {
+  left: 100%;
+}
+
+.button-slide-effect:hover::after {
+  right: 100%;
+}
+
+/* Cairo font classes */
+.font-cairo {
+  font-family: 'Cairo', sans-serif;
+  text-shadow: none !important;
+}
+
+/* RTL support for Arabic text */
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Custom animations */
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.slide-in-left {
+  animation: slideInFromLeft 0.5s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInFromRight 0.5s ease-out;
+}
+
+.animate-marquee {
+  animation: marquee 12s linear infinite;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

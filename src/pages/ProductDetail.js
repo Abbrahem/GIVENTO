@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { products } from '../data/products';
 import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
 
@@ -9,31 +8,93 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   
-  const product = products.find(p => p.id === parseInt(id));
-  
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity] = useState(1);
+  const [showDescription, setShowDescription] = useState(false);
+  const [showSizeChart, setShowSizeChart] = useState(false);
 
-  // Set default selections
+  // Function to get the correct size chart image based on category
+  const getSizeChartImage = (category) => {
+    const sizeChartMap = {
+      't-shirt': '/chart-sirt.png',
+      'cap': '/cap.jpg',
+      'pants': '/pants.webp',
+      'shorts': '/short.webp',
+      'zip-up': '/zip-up.jpg',
+      'hoodies': '/Size_Charthoodies.webp',
+      'polo shirts': '/Polo-T-shirt-Size-Chart.jpg'
+    };
+    
+    return sizeChartMap[category] || '/chart-sirt.png'; // Default to t-shirt chart if category not found
+  };
+
   useEffect(() => {
-    if (product && product.colors.length > 0 && !selectedColor) {
-      setSelectedColor(product.colors[0]);
+    fetchProduct();
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchProduct = async () => {
+    if (!id) {
+      setProduct(null);
+      setLoading(false);
+      return;
     }
-    if (product && product.sizes.length > 0 && !selectedSize) {
-      setSelectedSize(product.sizes[0]);
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/products/${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProduct(data);
+        // Set default selections
+        if (data.colors.length > 0) setSelectedColor(data.colors[0]);
+        if (data.sizes.length > 0) setSelectedSize(data.sizes[0]);
+      } else {
+        setProduct(null);
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      setProduct(null);
+    } finally {
+      setLoading(false);
     }
-  }, [product, selectedColor, selectedSize]);
+  };
+
+  if (loading) {
+    return (
+      <div className="pt-32 min-h-screen flex items-center justify-center">
+        <div className="text-center font-cairo">Loading...</div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
       <div className="pt-32 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 font-cairo">Product Not Found</h2>
           <button 
             onClick={() => navigate('/products')}
-            className="bg-primary text-white px-6 py-3 hover:bg-red-800 transition-colors rounded-lg"
+            className="bg-primary text-white px-6 py-3 hover:bg-red-800 transition-colors rounded-lg font-cairo"
+          >
+            Back to Products
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product.isAvailable) {
+    return (
+      <div className="pt-32 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 font-cairo">Out of Stock</h2>
+          <p className="text-gray-600 mb-4 font-cairo">This product is currently unavailable</p>
+          <button 
+            onClick={() => navigate('/products')}
+            className="bg-primary text-white px-6 py-3 hover:bg-red-800 transition-colors rounded-lg font-cairo"
           >
             Back to Products
           </button>
@@ -43,11 +104,20 @@ const ProductDetail = () => {
   }
 
   const handleAddToCart = () => {
-    if (!selectedColor || !selectedSize) {
+    if (product.sizes.length > 0 && !selectedSize) {
       Swal.fire({
         icon: 'warning',
-        title: 'Missing Selection',
-        text: 'Please select color and size',
+        title: 'Selection Required',
+        text: 'Please select size and color',
+        confirmButtonColor: '#dc2626'
+      });
+      return;
+    }
+    if (product.colors.length > 0 && !selectedColor) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Selection Required',
+        text: 'Please select color',
         confirmButtonColor: '#dc2626'
       });
       return;
@@ -64,11 +134,20 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
-    if (!selectedColor || !selectedSize) {
+    if (product.sizes.length > 0 && !selectedSize) {
       Swal.fire({
         icon: 'warning',
-        title: 'Missing Selection',
-        text: 'Please select color and size',
+        title: 'Selection Required',
+        text: 'Please select size and color',
+        confirmButtonColor: '#dc2626'
+      });
+      return;
+    }
+    if (product.colors.length > 0 && !selectedColor) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Selection Required',
+        text: 'Please select color',
         confirmButtonColor: '#dc2626'
       });
       return;
@@ -82,7 +161,7 @@ const ProductDetail = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="mb-8">
-          <ol className="flex items-center space-x-2 text-sm text-gray-500">
+          <ol className="flex items-center space-x-2 text-sm text-gray-500 font-cairo">
             <li>
               <button onClick={() => navigate('/')} className="hover:text-primary">
                 Home
@@ -95,7 +174,7 @@ const ProductDetail = () => {
               </button>
             </li>
             <li>/</li>
-            <li className="text-gray-800">{product.title}</li>
+            <li className="text-gray-800">{product.name}</li>
           </ol>
         </nav>
 
@@ -103,10 +182,10 @@ const ProductDetail = () => {
           {/* Left Column - Images */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="aspect-square overflow-hidden bg-gray-100">
+            <div className="aspect-square overflow-hidden bg-gray-100 rounded-lg">
               <img
-                src={product.images[selectedImage]}
-                alt={product.title}
+                src={`http://localhost:5000${product.images[selectedImage]}`}
+                alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -117,13 +196,13 @@ const ProductDetail = () => {
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`flex-shrink-0 w-20 h-20 overflow-hidden border-2 transition-colors ${
+                  className={`flex-shrink-0 w-20 h-20 overflow-hidden border-2 rounded-lg transition-colors ${
                     selectedImage === index ? 'border-primary' : 'border-gray-200'
                   }`}
                 >
                   <img
-                    src={image}
-                    alt={`${product.title} ${index + 1}`}
+                    src={`http://localhost:5000${image}`}
+                    alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </button>
@@ -134,125 +213,154 @@ const ProductDetail = () => {
           {/* Right Column - Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-4">
-                {product.title}
+              <h1 className="text-3xl font-bold text-gray-800 mb-4 font-cairo">
+                {product.name}
               </h1>
               
               {/* Price */}
               <div className="flex items-center space-x-3 mb-6">
-                {product.oldPrice && (
-                  <span className="text-xl text-gray-500 line-through">
-                    {product.oldPrice} EGP
-                  </span>
-                )}
+                <span className="text-xl text-gray-500 line-through">
+                  {product.originalPrice} EGP
+                </span>
                 <span className="text-3xl font-bold text-primary">
-                  {product.price} EGP
+                  {product.salePrice} EGP
                 </span>
               </div>
-
-              {/* Description */}
-              <p className="text-gray-600 leading-relaxed mb-8">
-                {product.description}
-              </p>
             </div>
 
             {/* Color Selection */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Color</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((color) => (
-                  <label key={color} className="cursor-pointer">
-                    <input
-                      type="radio"
-                      name="color"
-                      value={color}
-                      checked={selectedColor === color}
-                      onChange={(e) => setSelectedColor(e.target.value)}
-                      className="sr-only"
-                    />
-                    <span className={`inline-block px-4 py-2 border-2 rounded-lg transition-colors shadow-sm ${
-                      selectedColor === color 
-                        ? 'border-primary bg-primary text-white shadow-md' 
-                        : 'border-gray-300 hover:border-primary hover:shadow-md'
-                    }`}>
-                      {color}
-                    </span>
-                  </label>
-                ))}
+            {product.colors.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 font-cairo">Available Colors</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color) => (
+                    <label key={color} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="color"
+                        value={color}
+                        checked={selectedColor === color}
+                        onChange={(e) => setSelectedColor(e.target.value)}
+                        className="sr-only"
+                      />
+                      <span className={`inline-block px-4 py-2 border-2 rounded-lg transition-all duration-300 shadow-sm font-cairo ${
+                        selectedColor === color 
+                          ? 'border-primary bg-primary text-white shadow-md transform scale-105' 
+                          : 'border-gray-300 hover:border-primary hover:shadow-md hover:scale-105'
+                      }`}>
+                        {color}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Size Selection */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Size</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
-                  <label key={size} className="cursor-pointer">
-                    <input
-                      type="radio"
-                      name="size"
-                      value={size}
-                      checked={selectedSize === size}
-                      onChange={(e) => setSelectedSize(e.target.value)}
-                      className="sr-only"
-                    />
-                    <span className={`inline-block px-4 py-2 border-2 rounded-lg transition-colors shadow-sm ${
-                      selectedSize === size 
-                        ? 'border-primary bg-primary text-white shadow-md' 
-                        : 'border-gray-300 hover:border-primary hover:shadow-md'
-                    }`}>
-                      {size}
-                    </span>
-                  </label>
-                ))}
+            {product.sizes.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 font-cairo">Available Sizes</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <label key={size} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="size"
+                        value={size}
+                        checked={selectedSize === size}
+                        onChange={(e) => setSelectedSize(e.target.value)}
+                        className="sr-only"
+                      />
+                      <span className={`inline-block px-4 py-2 border-2 rounded-lg transition-all duration-300 shadow-sm font-cairo ${
+                        selectedSize === size 
+                          ? 'border-primary bg-primary text-white shadow-md transform scale-105' 
+                          : 'border-gray-300 hover:border-primary hover:shadow-md hover:scale-105'
+                      }`}>
+                        {size}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Description Dropdown */}
+            <div className="border-t pt-6">
+              <button
+                onClick={() => setShowDescription(!showDescription)}
+                className="w-full flex justify-between items-center py-4 text-left font-cairo"
+              >
+                <span className="text-lg font-semibold text-gray-800">Description</span>
+                <svg
+                  className={`w-5 h-5 transform transition-transform ${showDescription ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showDescription && (
+                <div className="pb-4">
+                  <p className="text-gray-600 leading-relaxed font-cairo whitespace-pre-line">
+                    {product.description}
+                  </p>
+                </div>
+              )}
             </div>
 
+            {/* Size Chart Dropdown */}
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="border-t">
+                <button
+                  onClick={() => setShowSizeChart(!showSizeChart)}
+                  className="w-full flex justify-between items-center py-4 text-left font-cairo"
+                >
+                  <span className="text-lg font-semibold text-gray-800">Size Chart</span>
+                  <svg
+                    className={`w-5 h-5 transform transition-transform ${showSizeChart ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showSizeChart && (
+                  <div className="pb-4">
+                    <div className="flex justify-center">
+                      <img
+                        src={getSizeChartImage(product.category)}
+                        alt={`${product.category} Size Chart`}
+                        className="max-w-full h-auto max-h-96 rounded-lg shadow-md object-contain"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <p className="text-gray-600 text-sm mt-3 font-cairo text-center">
+                      Please refer to the size chart to choose the right size
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Action Buttons */}
-            <div className="space-y-4 pt-6">
+            <div className="space-y-4">
               <button
                 onClick={handleAddToCart}
-                className="w-full bg-primary text-white py-4 px-6 text-lg font-semibold hover:bg-red-800 transition-colors duration-200 rounded-lg shadow-lg"
+                className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-800 transition-colors duration-200 font-cairo button-split-primary"
               >
                 Add to Cart
               </button>
               
               <button
                 onClick={handleBuyNow}
-                className="w-full bg-gray-800 text-white py-4 px-6 text-lg font-semibold hover:bg-gray-900 transition-colors duration-200 rounded-lg shadow-lg"
+                className="w-full bg-gray-800 text-white py-4 px-6 text-lg font-semibold hover:bg-gray-900 transition-all duration-300 rounded-lg shadow-lg button-split-secondary font-cairo"
               >
                 Buy Now
               </button>
-            </div>
-
-            {/* Product Features */}
-            <div className="border-t pt-6 mt-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Quality Guaranteed</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  <span>Secure Payment</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-                  </svg>
-                  <span>Fast Delivery</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>30-Day Returns</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

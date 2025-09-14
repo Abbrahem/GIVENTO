@@ -28,18 +28,59 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Show success alert
-    await Swal.fire({
-      title: 'Order Placed Successfully!',
-      text: 'Thank you for your order. We will contact you soon to confirm the details.',
-      icon: 'success',
-      confirmButtonText: 'Continue Shopping',
-      confirmButtonColor: '#b71c1c'
-    });
+    try {
+      // Create order object
+      const orderData = {
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        alternatePhone: formData.alternatePhone || '',
+        customerAddress: formData.address,
+        items: items.map(item => ({
+          product: item.id,
+          productName: item.title,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color,
+          price: item.price,
+          image: item.image
+        })),
+        totalAmount: total
+      };
 
-    // Clear cart and redirect
-    clearCart();
-    navigate('/products');
+      // Send order to backend
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (response.ok) {
+        // Show success alert
+        await Swal.fire({
+          title: 'Order Placed Successfully!',
+          text: 'Thank you for your order. We will contact you soon to confirm the details.',
+          icon: 'success',
+          confirmButtonText: 'Continue Shopping',
+          confirmButtonColor: '#b71c1c'
+        });
+
+        // Clear cart and redirect
+        clearCart();
+        navigate('/products');
+      } else {
+        throw new Error('Failed to place order');
+      }
+    } catch (error) {
+      console.error('Error placing order:', error);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to place order. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#b71c1c'
+      });
+    }
   };
 
   if (items.length === 0) {

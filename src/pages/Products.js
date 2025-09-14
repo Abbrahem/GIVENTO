@@ -1,9 +1,26 @@
-import React, { useState, useMemo } from 'react';
-import { products } from '../data/products';
+import React, { useState, useEffect, useMemo } from 'react';
 import ProductCard from '../components/ProductCard';
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/products');
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter products based on search term
   const filteredProducts = useMemo(() => {
@@ -11,9 +28,9 @@ const Products = () => {
       return products;
     }
     return products.filter(product =>
-      product.title.toLowerCase().includes(searchTerm.toLowerCase())
+      product.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [searchTerm, products]);
 
   return (
     <div className="pt-32 min-h-screen bg-white">
@@ -24,7 +41,7 @@ const Products = () => {
             All Products
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Discover our complete collection of premium products
+            Discover our complete collection of quality products
           </p>
         </div>
 
@@ -49,28 +66,38 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Products Grid */}
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+        {/* Loading State */}
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading products...</p>
           </div>
         ) : (
-          <div className="text-center py-16">
-            <svg className="mx-auto w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.009-5.824-2.562M15 6.306a7.962 7.962 0 00-6 0m6 0V5a2 2 0 00-2-2H9a2 2 0 00-2 2v1.306m6 0V7a2 2 0 012 2v4M9 6.306V7a2 2 0 00-2-2H5a2 2 0 00-2 2v4.01" />
-            </svg>
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No products found</h3>
-            <p className="text-gray-500">Try adjusting your search terms</p>
-          </div>
-        )}
+          <>
+            {/* Products Grid */}
+            {filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <svg className="mx-auto w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8V4a1 1 0 00-1-1H7a1 1 0 00-1 1v1m8 0V4.5" />
+                </svg>
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">No products found</h3>
+                <p className="text-gray-500">Try adjusting your search terms</p>
+              </div>
+            )}
 
-        {/* Results Count */}
-        {searchTerm && (
-          <div className="text-center mt-8 text-gray-600">
-            Showing {filteredProducts.length} result{filteredProducts.length !== 1 ? 's' : ''} for "{searchTerm}"
-          </div>
+            {/* Results Count */}
+            {searchTerm && (
+              <div className="text-center mt-8 text-gray-600">
+                Showing {filteredProducts.length} result{filteredProducts.length !== 1 ? 's' : ''} for "{searchTerm}"
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

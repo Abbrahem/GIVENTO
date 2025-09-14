@@ -22,7 +22,7 @@ const Cart = () => {
             <p className="text-gray-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
             <Link 
               to="/products"
-              className="inline-block bg-primary text-white px-8 py-3 hover:bg-red-800 transition-colors duration-200 font-semibold rounded-lg"
+              className="inline-block bg-primary text-white px-8 py-3 hover:bg-red-800 transition-colors duration-200 font-semibold rounded-lg button-split-primary"
             >
               Continue Shopping
             </Link>
@@ -124,7 +124,7 @@ const Cart = () => {
 
               <button
                 onClick={() => navigate('/checkout')}
-                className="w-full mt-6 bg-primary text-white py-4 px-6 font-semibold hover:bg-red-800 transition-colors duration-200 rounded-lg"
+                className="w-full mt-6 bg-primary text-white py-4 px-6 font-semibold hover:bg-red-800 transition-colors duration-200 rounded-lg button-split-primary"
               >
                 Proceed to Checkout
               </button>
