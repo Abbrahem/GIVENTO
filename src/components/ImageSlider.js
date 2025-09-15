@@ -12,42 +12,37 @@ const ImageSlider = () => {
     {
       id: 1,
       title: 'Summer Collection',
-      subtitle: 'Discover the latest trends',
       image: '/hero.webp',
-      buttonText: 'Shop Now',
+      buttonText: 'Shop New',
       link: '/category/t-shirt'
     },
     {
       id: 2,
       title: 'Winter Collection',
-      subtitle: 'Stay warm in style',
       image: '/hero.webp',
-      buttonText: 'Shop Now',
+      buttonText: 'Shop New',
       link: '/category/hoodies'
     },
     {
       id: 3,
-      title: 'New Arrivals',
-      subtitle: 'Fresh styles just in',
-      image: '/hero.webp',
-      buttonText: 'Explore',
-      link: '/products'
+      title: 'Cap Collection',
+      image: '/cap.jpg',
+      buttonText: 'Shop New',
+      link: '/category/cap'
     },
     {
       id: 4,
-      title: 'Special Offers',
-      subtitle: 'Limited time deals',
+      title: 'Pants Collection',
       image: '/hero.webp',
-      buttonText: 'Save Now',
-      link: '/products'
+      buttonText: 'Shop New',
+      link: '/category/pants'
     },
     {
       id: 5,
-      title: 'Premium Quality',
-      subtitle: 'Crafted with excellence',
+      title: 'Zip-up Collection',
       image: '/hero.webp',
-      buttonText: 'Discover',
-      link: '/products'
+      buttonText: 'Shop New',
+      link: '/category/zip-up'
     }
   ];
 
@@ -162,18 +157,15 @@ const ImageSlider = () => {
                 <div className="absolute inset-0 bg-black bg-opacity-40"></div>
                 
                 {/* Content */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                  <h2 className="text-4xl md:text-6xl font-bold text-white mb-4 font-cairo drop-shadow-lg">
+                <div className="absolute inset-0 flex flex-col items-center text-center px-4" style={{ paddingTop: '60%' }}>
+                  <h2 className="text-4xl md:text-6xl font-bold text-white mb-12 font-cairo drop-shadow-lg">
                     {slide.title}
                   </h2>
                   
-                  <p className="text-xl md:text-2xl text-white mb-8 font-cairo drop-shadow-md opacity-90">
-                    {slide.subtitle}
-                  </p>
-                  
                   <Link 
                     to={slide.link}
-                    className="bg-primary text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-red-800 transition-all duration-300 transform hover:scale-105 font-cairo drop-shadow-lg button-split-primary"
+                    className="text-white text-lg font-cairo underline-none border-none bg-transparent hover:text-gray-200 transition-colors duration-200"
+                    style={{ textDecoration: 'none', border: 'none', outline: 'none' }}
                   >
                     {slide.buttonText}
                   </Link>

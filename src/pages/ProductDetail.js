@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
+import { getApiUrl, getImageUrl, API_ENDPOINTS } from '../config/api';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -44,7 +45,7 @@ const ProductDetail = () => {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${id}`);
+      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(id)));
       if (response.ok) {
         const data = await response.json();
         setProduct(data);
@@ -184,7 +185,7 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className="aspect-square overflow-hidden bg-gray-100 rounded-lg">
               <img
-                src={`http://localhost:5000${product.images[selectedImage]}`}
+                src={getImageUrl(product.images[selectedImage])}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -201,7 +202,7 @@ const ProductDetail = () => {
                   }`}
                 >
                   <img
-                    src={`http://localhost:5000${image}`}
+                    src={getImageUrl(image)}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />

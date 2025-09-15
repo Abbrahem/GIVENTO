@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ImageSlider from '../components/ImageSlider';
 import TikTokSection from '../components/TikTokSection';
+import { getApiUrl, getImageUrl, API_ENDPOINTS } from '../config/api';
 
 const Home = () => {
   const [latestProduct, setLatestProduct] = useState(null);
@@ -22,7 +23,7 @@ const Home = () => {
 
   const fetchLatestProduct = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/products/latest');
+      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS_LATEST));
       const data = await response.json();
       setLatestProduct(data);
     } catch (error) {
@@ -133,7 +134,7 @@ const Home = () => {
                 
                 <div className="relative overflow-hidden">
                   <img 
-                    src={latestProduct.images && latestProduct.images.length > 0 ? `http://localhost:5000${latestProduct.images[0]}` : '/placeholder-image.jpg'} 
+                    src={latestProduct.images && latestProduct.images.length > 0 ? getImageUrl(latestProduct.images[0]) : '/placeholder-image.jpg'} 
                     alt={latestProduct.name}
                     className={`w-full h-80 object-cover transition-transform duration-300 ${latestProduct.isAvailable ? 'hover:scale-110' : 'grayscale'}`}
                     onError={(e) => {

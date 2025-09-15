@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { getApiUrl, API_ENDPOINTS } from '../config/api';
 
 const Checkout = () => {
   const { items, getCartTotal, clearCart } = useCart();
@@ -48,7 +49,7 @@ const Checkout = () => {
       };
 
       // Send order to backend
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.ORDERS), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

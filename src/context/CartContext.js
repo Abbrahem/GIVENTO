@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer } from 'react';
+import { getImageUrl } from '../config/api';
 
 const CartContext = createContext();
 
@@ -56,7 +57,7 @@ export const CartProvider = ({ children }) => {
         id: product._id,
         title: product.name,
         price: product.salePrice,
-        image: product.images && product.images.length > 0 && product.images[0] !== 'undefined' ? `http://localhost:5000${product.images[0]}` : '/placeholder-image.jpg',
+        image: product.images && product.images.length > 0 && product.images[0] !== 'undefined' ? getImageUrl(product.images[0]) : '/placeholder-image.jpg',
         color,
         size,
         quantity

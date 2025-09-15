@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../config/api';
 
 const ProductCard = ({ product }) => {
   return (
@@ -16,7 +17,7 @@ const ProductCard = ({ product }) => {
           {/* Product Image */}
           <div className={`aspect-square overflow-hidden ${!product.isAvailable ? 'mt-10' : ''}`}>
             <img
-              src={product.images && product.images.length > 0 ? `http://localhost:5000${product.images[0]}` : '/placeholder-image.jpg'}
+              src={product.images && product.images.length > 0 ? getImageUrl(product.images[0]) : '/placeholder-image.jpg'}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {

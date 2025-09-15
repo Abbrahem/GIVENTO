@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import { getApiUrl, API_ENDPOINTS } from '../config/api';
 
 const CategoryPage = () => {
   const { categorySlug } = useParams();
@@ -32,7 +33,7 @@ const CategoryPage = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/products');
+      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS));
       const data = await response.json();
       
       // Filter products by category

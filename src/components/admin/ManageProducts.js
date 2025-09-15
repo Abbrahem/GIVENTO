@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import { getApiUrl, getImageUrl, API_ENDPOINTS } from '../../config/api';
 
 const ManageProducts = () => {
   const [products, setProducts] = useState([]);
@@ -12,7 +13,7 @@ const ManageProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/products');
+      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS));
       const data = await response.json();
       setProducts(data);
     } catch (error) {
@@ -38,7 +39,7 @@ const ManageProducts = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(productId)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -74,7 +75,7 @@ const ManageProducts = () => {
   const handleToggleAvailability = async (productId) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:5000/api/products/${productId}/toggle`, {
+      const response = await fetch(getApiUrl(`/api/products/${productId}/toggle`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -137,7 +138,7 @@ const ManageProducts = () => {
       formData.append('sizes', JSON.stringify(updatedProduct.sizes));
       formData.append('colors', JSON.stringify(updatedProduct.colors));
 
-      const response = await fetch(`http://localhost:5000/api/products/${updatedProduct._id}`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(updatedProduct._id)), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -230,7 +231,7 @@ const ManageProducts = () => {
                       <div className="flex-shrink-0 h-12 w-12">
                         <img
                           className="h-12 w-12 rounded-xl object-cover shadow-sm"
-                          src={product.images && product.images.length > 0 ? `http://localhost:5000${product.images[0]}` : '/placeholder-image.jpg'}
+                          src={product.images && product.images.length > 0 ? getImageUrl(product.images[0]) : '/placeholder-image.jpg'}
                           alt={product.name}
                           onError={(e) => {
                             e.target.src = '/placeholder-image.jpg';
@@ -292,7 +293,7 @@ const ManageProducts = () => {
               <div className="flex items-start space-x-4">
                 <img
                   className="h-16 w-16 rounded-xl object-cover shadow-sm"
-                  src={product.images && product.images.length > 0 ? `http://localhost:5000${product.images[0]}` : '/placeholder-image.jpg'}
+                  src={product.images && product.images.length > 0 ? getImageUrl(product.images[0]) : '/placeholder-image.jpg'}
                   alt={product.name}
                   onError={(e) => {
                     e.target.src = '/placeholder-image.jpg';

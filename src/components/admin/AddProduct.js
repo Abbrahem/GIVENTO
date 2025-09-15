@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
+import { getApiUrl, API_ENDPOINTS } from '../../config/api';
 
 const AddProduct = () => {
   const [formData, setFormData] = useState({
@@ -112,7 +113,7 @@ const AddProduct = () => {
         formDataToSend.append('images', image);
       });
 
-      const response = await fetch('http://localhost:5000/api/products', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import { getApiUrl, API_ENDPOINTS } from '../../config/api';
 
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -12,7 +13,7 @@ const ManageOrders = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.ORDERS), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -30,7 +31,7 @@ const ManageOrders = () => {
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      const response = await fetch(getApiUrl(`/api/orders/${orderId}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +69,7 @@ const ManageOrders = () => {
     if (result.isConfirmed) {
       try {
         const token = localStorage.getItem('adminToken');
-        const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+        const response = await fetch(getApiUrl(API_ENDPOINTS.ORDER_BY_ID(orderId)), {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
