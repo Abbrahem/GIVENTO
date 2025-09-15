@@ -35,7 +35,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'givento_jwt_secret_2024_secure_key
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'https://giventoo-eg.vercel.app'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'https://giventoo-eg.vercel.app', 'https://givento-u1jy.vercel.app'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

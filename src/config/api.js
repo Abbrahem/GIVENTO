@@ -7,24 +7,24 @@ const API_CONFIG = {
   // API endpoints
   ENDPOINTS: {
     // Auth endpoints
-    LOGIN: '/api/auth/login',
-    REGISTER: '/api/auth/register',
+    LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
     
     // Product endpoints
-    PRODUCTS: '/api/products',
-    PRODUCTS_LATEST: '/api/products/latest',
-    PRODUCT_BY_ID: (id) => `/api/products/${id}`,
+    PRODUCTS: '/products',
+    PRODUCTS_LATEST: '/products/latest',
+    PRODUCT_BY_ID: (id) => `/products/${id}`,
     
     // Category endpoints
-    CATEGORIES: '/api/categories',
-    CATEGORY_PRODUCTS: (slug) => `/api/categories/${slug}/products`,
+    CATEGORIES: '/categories',
+    CATEGORY_PRODUCTS: (slug) => `/categories/${slug}/products`,
     
     // Order endpoints
-    ORDERS: '/api/orders',
-    ORDER_BY_ID: (id) => `/api/orders/${id}`,
+    ORDERS: '/orders',
+    ORDER_BY_ID: (id) => `/orders/${id}`,
     
     // Upload endpoints
-    UPLOAD: '/api/upload'
+    UPLOAD: '/upload'
   }
 };
 
