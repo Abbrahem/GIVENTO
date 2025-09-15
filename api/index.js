@@ -5,25 +5,29 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+require('dotenv').config();
+// Try to load sharp, but make it optional
+let sharp;
+try {
+  sharp = require('sharp');
+} catch (error) {
+  console.warn('Sharp not available, image compression disabled:', error.message);
+  sharp = null;
+}
 
 const app = express();
 
-// JWT Secret - Generate a secure random secret
-const JWT_SECRET = 'givento_jwt_secret_2024_secure_key_a8f9b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6';
+// JWT Secret - Use environment variable or fallback
+const JWT_SECRET = process.env.JWT_SECRET || 'givento_jwt_secret_2024_secure_key_a8f9b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
-
-// Create uploads directory if it doesn't exist
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
+// No need for static file serving since we're using base64
 
 // MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/givento', {
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/givento';
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -85,18 +89,9 @@ const Product = mongoose.model('Product', productSchema);
 const Order = mongoose.model('Order', orderSchema);
 const Category = mongoose.model('Category', categorySchema);
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
-  }
-});
-
+// Multer configuration for memory storage (base64 conversion)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: function (req, file, cb) {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
@@ -110,6 +105,32 @@ const upload = multer({
     }
   }
 });
+
+// Helper function to compress and convert image to base64
+const compressAndConvertToBase64 = async (buffer, mimetype) => {
+  // If sharp is available, use it for compression
+  if (sharp) {
+    try {
+      const compressedBuffer = await sharp(buffer)
+        .resize(800, 800, { 
+          fit: 'inside',
+          withoutEnlargement: true 
+        })
+        .jpeg({ 
+          quality: 80,
+          progressive: true 
+        })
+        .toBuffer();
+      
+      return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+    } catch (error) {
+      console.error('Error compressing image with sharp:', error);
+    }
+  }
+  
+  // Fallback: return original image as base64 without compression
+  return `data:${mimetype};base64,${buffer.toString('base64')}`;
+};
 
 // Auth middleware
 const auth = (req, res, next) => {
@@ -191,7 +212,14 @@ app.post('/api/products', auth, upload.array('images', 5), async (req, res) => {
   try {
     const { name, description, originalPrice, salePrice, category, sizes, colors, isAvailable } = req.body;
     
-    const images = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    // Compress and convert uploaded images to base64
+    const images = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const compressedImage = await compressAndConvertToBase64(file.buffer, file.mimetype);
+        images.push(compressedImage);
+      }
+    }
     
     const product = new Product({
       name,
@@ -231,7 +259,12 @@ app.put('/api/products/:id', auth, upload.array('images', 5), async (req, res) =
     };
     
     if (req.files && req.files.length > 0) {
-      updateData.images = req.files.map(file => `/uploads/${file.filename}`);
+      const compressedImages = [];
+      for (const file of req.files) {
+        const compressedImage = await compressAndConvertToBase64(file.buffer, file.mimetype);
+        compressedImages.push(compressedImage);
+      }
+      updateData.images = compressedImages;
     }
     
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
@@ -256,16 +289,7 @@ app.delete('/api/products/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    // Delete associated images
-    if (product.images && product.images.length > 0) {
-      product.images.forEach(imagePath => {
-        const fullPath = path.join(__dirname, imagePath);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
-      });
-    }
-    
+    // No need to delete files since images are stored as base64 in database
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);
