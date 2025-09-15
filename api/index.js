@@ -17,6 +17,11 @@ try {
 
 const app = express();
 
+// For Vercel serverless functions
+if (process.env.VERCEL) {
+  app.set('trust proxy', 1);
+}
+
 // JWT Secret - Use environment variable or fallback
 const JWT_SECRET = process.env.JWT_SECRET || 'givento_jwt_secret_2024_secure_key_a8f9b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6';
 
@@ -477,6 +482,42 @@ app.delete('/api/categories/:id', auth, async (req, res) => {
   }
 });
 
+// ==================== MIGRATION ENDPOINT ====================
+
+// Fix existing products with /uploads paths (one-time migration)
+app.post('/api/migrate-images', auth, async (req, res) => {
+  try {
+    const products = await Product.find({ 
+      images: { $elemMatch: { $regex: '^/uploads/' } } 
+    });
+    
+    let updatedCount = 0;
+    
+    for (const product of products) {
+      // Create placeholder base64 image for existing products
+      const placeholderBase64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=';
+      
+      product.images = product.images.map(img => {
+        if (img.startsWith('/uploads/')) {
+          return placeholderBase64;
+        }
+        return img;
+      });
+      
+      await product.save();
+      updatedCount++;
+    }
+    
+    res.json({ 
+      message: `Migration completed. Updated ${updatedCount} products.`,
+      updatedCount 
+    });
+  } catch (error) {
+    console.error('Migration error:', error);
+    res.status(500).json({ message: 'Migration failed' });
+  }
+});
+
 // ==================== HEALTH CHECK ====================
 
 app.get('/api/health', (req, res) => {
@@ -494,12 +535,14 @@ app.use((error, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 GIVENTO API Server running on port ${PORT}`);
-  console.log(`🔑 JWT Secret: ${JWT_SECRET.substring(0, 20)}...`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-});
+// Start server only if not in Vercel environment
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 GIVENTO API Server running on port ${PORT}`);
+    console.log(`🔑 JWT Secret: ${JWT_SECRET.substring(0, 20)}...`);
+    console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  });
+}
 
 module.exports = app;

@@ -29,7 +29,9 @@ const API_CONFIG = {
 
 // Helper function to build full API URL
 export const getApiUrl = (endpoint) => {
-  return `${API_CONFIG.BASE_URL}${endpoint}`;
+  // Remove duplicate /api if BASE_URL already ends with /api
+  const baseUrl = API_CONFIG.BASE_URL.replace(/\/api$/, '');
+  return `${baseUrl}${endpoint}`;
 };
 
 // Helper function to get image URL
