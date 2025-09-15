@@ -2,6 +2,7 @@
 const API_CONFIG = {
   // Use environment variable or fallback to localhost for development
   BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+  VERSION: '2.0', // Force cache refresh
   
   // API endpoints
   ENDPOINTS: {
@@ -29,9 +30,11 @@ const API_CONFIG = {
 
 // Helper function to build full API URL
 export const getApiUrl = (endpoint) => {
-  // Remove duplicate /api if BASE_URL already ends with /api
-  const baseUrl = API_CONFIG.BASE_URL.replace(/\/api$/, '');
-  return `${baseUrl}${endpoint}`;
+  // Clean base URL and endpoint to avoid duplicates
+  const baseUrl = API_CONFIG.BASE_URL.replace(/\/+$/, ''); // Remove trailing slashes
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  
+  return `${baseUrl}${cleanEndpoint}`;
 };
 
 // Helper function to get image URL

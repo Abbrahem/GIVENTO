@@ -22,19 +22,52 @@ if (process.env.VERCEL) {
   app.set('trust proxy', 1);
 }
 
+// Add middleware to handle request logging for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
+
 // JWT Secret - Use environment variable or fallback
 const JWT_SECRET = process.env.JWT_SECRET || 'givento_jwt_secret_2024_secure_key_a8f9b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6';
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'https://giventoo-eg.vercel.app'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 // No need for static file serving since we're using base64
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/givento';
+
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+})
+.then(() => {
+  console.log('✅ Connected to MongoDB successfully');
+})
+.catch((error) => {
+  console.error('❌ MongoDB connection error:', error);
+});
+
+// MongoDB connection event listeners
+mongoose.connection.on('error', (error) => {
+  console.error('MongoDB connection error:', error);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connected');
 });
 
 // Schemas
@@ -525,7 +558,21 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'GIVENTO API is running',
     timestamp: new Date().toISOString(),
-    jwt_secret_configured: !!JWT_SECRET
+    jwt_secret_configured: !!JWT_SECRET,
+    mongodb_connected: mongoose.connection.readyState === 1,
+    environment: process.env.NODE_ENV || 'development',
+    vercel: !!process.env.VERCEL
+  });
+});
+
+// Add a catch-all route to handle any unmatched routes (before error handler)
+app.use('*', (req, res) => {
+  console.log(`Unmatched route: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ 
+    error: 'Endpoint not found',
+    method: req.method,
+    url: req.originalUrl,
+    message: 'This API endpoint does not exist'
   });
 });
 
