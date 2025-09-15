@@ -36,6 +36,7 @@ export const getApiUrl = (endpoint) => {
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '/placeholder-image.jpg';
   if (imagePath.startsWith('http')) return imagePath;
+  if (imagePath.startsWith('data:')) return imagePath; // For base64 images
   return `${API_CONFIG.BASE_URL}${imagePath}`;
 };
 

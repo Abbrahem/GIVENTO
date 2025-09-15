@@ -193,6 +193,20 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+// Get latest product
+app.get('/api/products/latest', async (req, res) => {
+  try {
+    const latestProduct = await Product.findOne().sort({ createdAt: -1 });
+    if (!latestProduct) {
+      return res.status(404).json({ message: 'No products found' });
+    }
+    res.json(latestProduct);
+  } catch (error) {
+    console.error('Error fetching latest product:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get product by ID
 app.get('/api/products/:id', async (req, res) => {
   try {

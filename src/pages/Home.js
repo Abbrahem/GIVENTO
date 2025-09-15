@@ -24,10 +24,22 @@ const Home = () => {
   const fetchLatestProduct = async () => {
     try {
       const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS_LATEST));
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
+      }
+      
       const data = await response.json();
       setLatestProduct(data);
     } catch (error) {
       console.error('Error fetching latest product:', error);
+      // Set to null to hide the section if there's an error
+      setLatestProduct(null);
     }
   };
 
