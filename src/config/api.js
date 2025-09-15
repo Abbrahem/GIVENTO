@@ -46,10 +46,11 @@ export const getImageUrl = (imagePath) => {
   if (imagePath.startsWith('http')) return imagePath;
   if (imagePath.startsWith('data:')) return imagePath; // For base64 images
   
-  // For uploaded file paths, construct full URL
+  // For uploaded file paths, these should be base64 in production
   if (imagePath.startsWith('/uploads/')) {
-    const baseUrl = API_CONFIG.BASE_URL.replace('/api', ''); // Remove /api for file serving
-    return `${baseUrl}${imagePath}`;
+    // In production, images should be base64, not file paths
+    console.warn('File path detected in production, should be base64:', imagePath);
+    return '/placeholder-image.jpg';
   }
   
   console.log('Image path received:', imagePath);
