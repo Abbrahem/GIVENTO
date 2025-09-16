@@ -96,6 +96,7 @@ export default async function handler(req, res) {
   try {
     await connectDB();
     const { url } = req;
+    console.log('API Request:', req.method, url);
 
     // Products endpoints
     if (url === '/api/products') {
@@ -119,6 +120,47 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         const latestProduct = await Product.findOne().sort({ createdAt: -1 });
         return res.json(latestProduct);
+      }
+    }
+
+    // Product by ID endpoint
+    if (url.match(/^\/api\/products\/[a-fA-F0-9]{24}$/)) {
+      const productId = url.split('/').pop();
+      if (req.method === 'GET') {
+        const product = await Product.findById(productId);
+        if (!product) {
+          return res.status(404).json({ message: 'Product not found' });
+        }
+        return res.json(product);
+      }
+      if (req.method === 'PUT') {
+        const updates = req.body;
+        const product = await Product.findByIdAndUpdate(productId, updates, { new: true });
+        if (!product) {
+          return res.status(404).json({ message: 'Product not found' });
+        }
+        return res.json(product);
+      }
+      if (req.method === 'DELETE') {
+        const product = await Product.findByIdAndDelete(productId);
+        if (!product) {
+          return res.status(404).json({ message: 'Product not found' });
+        }
+        return res.json({ message: 'Product deleted successfully' });
+      }
+    }
+
+    // Product toggle availability endpoint
+    if (url.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/)) {
+      const productId = url.split('/')[3];
+      if (req.method === 'PUT') {
+        const product = await Product.findById(productId);
+        if (!product) {
+          return res.status(404).json({ message: 'Product not found' });
+        }
+        product.isAvailable = !product.isAvailable;
+        await product.save();
+        return res.json(product);
       }
     }
 
@@ -163,12 +205,58 @@ export default async function handler(req, res) {
       }
     }
 
-    // Health check
-    if (url === '/api/health') {
-      return res.json({ status: 'OK', message: 'API is running' });
+    // Order by ID endpoint
+    if (url.match(/^\/api\/orders\/[a-fA-F0-9]{24}$/)) {
+      const orderId = url.split('/').pop();
+      if (req.method === 'GET') {
+        const order = await Order.findById(orderId).populate('items.productId');
+        if (!order) {
+          return res.status(404).json({ message: 'Order not found' });
+        }
+        return res.json(order);
+      }
+      if (req.method === 'PUT') {
+        const updates = req.body;
+        const order = await Order.findByIdAndUpdate(orderId, updates, { new: true });
+        if (!order) {
+          return res.status(404).json({ message: 'Order not found' });
+        }
+        return res.json(order);
+      }
     }
 
-    return res.status(404).json({ message: 'Route not found' });
+    // Categories endpoints
+    if (url === '/api/categories') {
+      if (req.method === 'GET') {
+        const categories = await Product.distinct('category');
+        return res.json(categories.map(cat => ({ name: cat, slug: cat.toLowerCase().replace(/\s+/g, '-') })));
+      }
+    }
+
+    // Category products endpoint
+    if (url.match(/^\/api\/categories\/[^\/]+\/products$/)) {
+      const categorySlug = url.split('/')[3];
+      const categoryName = categorySlug.replace(/-/g, ' ');
+      if (req.method === 'GET') {
+        const products = await Product.find({ 
+          category: new RegExp(categoryName, 'i') 
+        }).sort({ createdAt: -1 });
+        return res.json(products);
+      }
+    }
+
+    // Health check
+    if (url === '/api/health') {
+      return res.json({ 
+        status: 'OK', 
+        message: 'API is running',
+        mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log('Route not found:', url);
+    return res.status(404).json({ message: `Route not found: ${url}` });
   } catch (error) {
     console.error('API Error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });
