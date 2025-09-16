@@ -3,6 +3,9 @@ const BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://giventoo-eg.vercel.app' 
   : 'http://localhost:5000';
 
+console.log('API Config - NODE_ENV:', process.env.NODE_ENV);
+console.log('API Config - BASE_URL:', BASE_URL);
+
 // API endpoints configuration
 const API_ENDPOINTS = {
   // Auth endpoints
@@ -41,24 +44,26 @@ export const getImageUrl = (imagePath) => {
   }
   
   // If it's a base64 image, return as is
-  if (imagePath.startsWith('data:')) {
+  if (imagePath.startsWith('data:image/')) {
     return imagePath;
   }
   
-  // For production, images should be base64 or external URLs
-  // For local development, handle file uploads
+  // If it's a relative path to public folder (static images)
+  if (imagePath.startsWith('/') && !imagePath.startsWith('/uploads/')) {
+    return imagePath;
+  }
+  
+  // For file uploads in development
   if (imagePath.startsWith('/uploads/')) {
-    // In production, this shouldn't happen as we use base64
-    // But for development, build full URL
     if (process.env.NODE_ENV === 'production') {
       return '/placeholder-image.jpg';
     }
     return `${BASE_URL}${imagePath}`;
   }
   
-  // If it's a relative path to public folder
-  if (imagePath.startsWith('/') && !imagePath.startsWith('/uploads/')) {
-    return imagePath;
+  // If it looks like a filename without path, assume it's in public folder
+  if (!imagePath.includes('/') && (imagePath.includes('.jpg') || imagePath.includes('.png') || imagePath.includes('.webp'))) {
+    return `/${imagePath}`;
   }
   
   // Default fallback

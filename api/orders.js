@@ -1,0 +1,143 @@
+const mongoose = require('mongoose');
+
+// Order Model
+const OrderSchema = new mongoose.Schema({
+  customerInfo: {
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true }
+  },
+  items: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    name: String,
+    price: Number,
+    quantity: Number,
+    size: String,
+    color: String
+  }],
+  totalAmount: { type: Number, required: true },
+  shippingAddress: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
+  }
+}, { timestamps: true });
+
+let Order;
+try {
+  Order = mongoose.model('Order');
+} catch {
+  Order = mongoose.model('Order', OrderSchema);
+}
+
+// Database connection
+let cachedConnection = null;
+
+const connectDB = async () => {
+  if (cachedConnection) {
+    return cachedConnection;
+  }
+  
+  try {
+    const connection = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    cachedConnection = connection;
+    return connection;
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
+
+module.exports = async (req, res) => {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  try {
+    await connectDB();
+    console.log('Orders API called:', req.method, req.url);
+
+    // Handle different URL patterns
+    const url = req.url || '';
+    const pathParts = url.split('/').filter(Boolean);
+    
+    // GET /api/orders - Get all orders
+    if (req.method === 'GET' && pathParts.length === 0) {
+      const orders = await Order.find().sort({ createdAt: -1 });
+      console.log(`Found ${orders.length} orders`);
+      return res.json(orders);
+    }
+
+    // GET /api/orders/:id - Get order by ID
+    if (req.method === 'GET' && pathParts.length === 1) {
+      const orderId = pathParts[0];
+      if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        return res.status(400).json({ message: 'Invalid order ID' });
+      }
+      
+      const order = await Order.findById(orderId).populate('items.productId');
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+      return res.json(order);
+    }
+
+    // PUT /api/orders/:id - Update order
+    if (req.method === 'PUT' && pathParts.length === 1) {
+      const orderId = pathParts[0];
+      if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        return res.status(400).json({ message: 'Invalid order ID' });
+      }
+      
+      const updates = req.body;
+      const order = await Order.findByIdAndUpdate(orderId, updates, { new: true });
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+      return res.json(order);
+    }
+
+    // POST /api/orders - Create new order
+    if (req.method === 'POST' && pathParts.length === 0) {
+      const { customerInfo, items, totalAmount, shippingAddress } = req.body;
+      
+      console.log('Creating order with data:', { customerInfo, items: items?.length, totalAmount });
+      
+      if (!customerInfo || !items || items.length === 0) {
+        return res.status(400).json({ message: 'Customer info and items are required' });
+      }
+
+      const order = new Order({
+        customerInfo,
+        items,
+        totalAmount: parseFloat(totalAmount),
+        shippingAddress,
+        status: 'pending'
+      });
+
+      await order.save();
+      console.log('Order created successfully:', order._id);
+      return res.status(201).json(order);
+    }
+
+    return res.status(404).json({ message: 'Route not found' });
+  } catch (error) {
+    console.error('Orders API Error:', error);
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

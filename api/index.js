@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Import required modules for Vercel serverless
+const { parse } = require('url');
+
 // Models
 const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -83,7 +86,7 @@ const connectDB = async () => {
   }
 };
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -95,11 +98,11 @@ export default async function handler(req, res) {
 
   try {
     await connectDB();
-    const { url } = req;
-    console.log('API Request:', req.method, url);
+    const { pathname } = parse(req.url, true);
+    console.log('API Request:', req.method, pathname);
 
     // Products endpoints
-    if (url === '/api/products') {
+    if (pathname === '/api/products') {
       if (req.method === 'GET') {
         const products = await Product.find().sort({ createdAt: -1 });
         return res.json(products);
@@ -116,7 +119,7 @@ export default async function handler(req, res) {
       }
     }
 
-    if (url === '/api/products/latest') {
+    if (pathname === '/api/products/latest') {
       if (req.method === 'GET') {
         const latestProduct = await Product.findOne().sort({ createdAt: -1 });
         return res.json(latestProduct);
@@ -124,8 +127,8 @@ export default async function handler(req, res) {
     }
 
     // Product by ID endpoint
-    if (url.match(/^\/api\/products\/[a-fA-F0-9]{24}$/)) {
-      const productId = url.split('/').pop();
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}$/)) {
+      const productId = pathname.split('/').pop();
       if (req.method === 'GET') {
         const product = await Product.findById(productId);
         if (!product) {
@@ -151,8 +154,8 @@ export default async function handler(req, res) {
     }
 
     // Product toggle availability endpoint
-    if (url.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/)) {
-      const productId = url.split('/')[3];
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/)) {
+      const productId = pathname.split('/')[3];
       if (req.method === 'PUT') {
         const product = await Product.findById(productId);
         if (!product) {
@@ -165,7 +168,7 @@ export default async function handler(req, res) {
     }
 
     // Auth endpoints
-    if (url === '/api/auth/login') {
+    if (pathname === '/api/auth/login') {
       if (req.method === 'POST') {
         const { email, password } = req.body;
         let user = await User.findOne({ email });
@@ -189,7 +192,7 @@ export default async function handler(req, res) {
     }
 
     // Orders endpoints
-    if (url === '/api/orders') {
+    if (pathname === '/api/orders') {
       if (req.method === 'GET') {
         const orders = await Order.find().sort({ createdAt: -1 });
         return res.json(orders);
@@ -206,8 +209,8 @@ export default async function handler(req, res) {
     }
 
     // Order by ID endpoint
-    if (url.match(/^\/api\/orders\/[a-fA-F0-9]{24}$/)) {
-      const orderId = url.split('/').pop();
+    if (pathname.match(/^\/api\/orders\/[a-fA-F0-9]{24}$/)) {
+      const orderId = pathname.split('/').pop();
       if (req.method === 'GET') {
         const order = await Order.findById(orderId).populate('items.productId');
         if (!order) {
@@ -226,7 +229,7 @@ export default async function handler(req, res) {
     }
 
     // Categories endpoints
-    if (url === '/api/categories') {
+    if (pathname === '/api/categories') {
       if (req.method === 'GET') {
         const categories = await Product.distinct('category');
         return res.json(categories.map(cat => ({ name: cat, slug: cat.toLowerCase().replace(/\s+/g, '-') })));
@@ -234,8 +237,8 @@ export default async function handler(req, res) {
     }
 
     // Category products endpoint
-    if (url.match(/^\/api\/categories\/[^\/]+\/products$/)) {
-      const categorySlug = url.split('/')[3];
+    if (pathname.match(/^\/api\/categories\/[^\/]+\/products$/)) {
+      const categorySlug = pathname.split('/')[3];
       const categoryName = categorySlug.replace(/-/g, ' ');
       if (req.method === 'GET') {
         const products = await Product.find({ 
@@ -246,7 +249,7 @@ export default async function handler(req, res) {
     }
 
     // Health check
-    if (url === '/api/health') {
+    if (pathname === '/api/health') {
       return res.json({ 
         status: 'OK', 
         message: 'API is running',
@@ -255,8 +258,8 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('Route not found:', url);
-    return res.status(404).json({ message: `Route not found: ${url}` });
+    console.log('Route not found:', pathname);
+    return res.status(404).json({ message: `Route not found: ${pathname}` });
   } catch (error) {
     console.error('API Error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });

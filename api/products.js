@@ -41,7 +41,7 @@ const connectDB = async () => {
   }
 };
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -53,14 +53,90 @@ export default async function handler(req, res) {
 
   try {
     await connectDB();
+    console.log('Products API called:', req.method, req.url);
 
-    if (req.method === 'GET') {
+    // Handle different URL patterns
+    const url = req.url || '';
+    const pathParts = url.split('/').filter(Boolean);
+    
+    // GET /api/products - Get all products
+    if (req.method === 'GET' && pathParts.length === 0) {
       const products = await Product.find().sort({ createdAt: -1 });
+      console.log(`Found ${products.length} products`);
       return res.json(products);
     }
 
-    if (req.method === 'POST') {
+    // GET /api/products/latest - Get latest product
+    if (req.method === 'GET' && pathParts[0] === 'latest') {
+      const latestProduct = await Product.findOne().sort({ createdAt: -1 });
+      return res.json(latestProduct);
+    }
+
+    // GET /api/products/:id - Get product by ID
+    if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] !== 'latest') {
+      const productId = pathParts[0];
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ message: 'Invalid product ID' });
+      }
+      
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      return res.json(product);
+    }
+
+    // PUT /api/products/:id/toggle - Toggle product availability
+    if (req.method === 'PUT' && pathParts.length === 2 && pathParts[1] === 'toggle') {
+      const productId = pathParts[0];
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ message: 'Invalid product ID' });
+      }
+      
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
+      product.isAvailable = !product.isAvailable;
+      await product.save();
+      return res.json(product);
+    }
+
+    // PUT /api/products/:id - Update product
+    if (req.method === 'PUT' && pathParts.length === 1) {
+      const productId = pathParts[0];
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ message: 'Invalid product ID' });
+      }
+      
+      const updates = req.body;
+      const product = await Product.findByIdAndUpdate(productId, updates, { new: true });
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      return res.json(product);
+    }
+
+    // DELETE /api/products/:id - Delete product
+    if (req.method === 'DELETE' && pathParts.length === 1) {
+      const productId = pathParts[0];
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ message: 'Invalid product ID' });
+      }
+      
+      const product = await Product.findByIdAndDelete(productId);
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      return res.json({ message: 'Product deleted successfully' });
+    }
+
+    // POST /api/products - Create new product
+    if (req.method === 'POST' && pathParts.length === 0) {
       const { name, description, originalPrice, salePrice, category, sizes, colors, images } = req.body;
+      
+      console.log('Creating product with data:', { name, category, images: images?.length });
       
       if (!images || images.length === 0) {
         return res.status(400).json({ message: 'At least one image is required' });
@@ -78,12 +154,13 @@ export default async function handler(req, res) {
       });
 
       await product.save();
+      console.log('Product created successfully:', product._id);
       return res.status(201).json(product);
     }
 
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(404).json({ message: 'Route not found' });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Products API Error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 }
