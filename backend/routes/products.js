@@ -45,13 +45,20 @@ router.get('/latest', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const productId = req.params.id;
+    
+    // Validate ObjectId format
+    if (!require('mongoose').Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+    
+    const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
     res.json(product);
   } catch (error) {
-    console.error(error);
+    console.error('Error finding product:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -115,8 +122,14 @@ router.post('/', auth, upload.array('images', 10), async (req, res) => {
 router.put('/:id', auth, upload.array('images', 10), async (req, res) => {
   try {
     const { name, description, originalPrice, salePrice, category, sizes, colors } = req.body;
+    const productId = req.params.id;
     
-    const product = await Product.findById(req.params.id);
+    // Validate ObjectId format
+    if (!require('mongoose').Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+    
+    const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
@@ -168,7 +181,14 @@ router.put('/:id', auth, upload.array('images', 10), async (req, res) => {
 // @access  Private (Admin only)
 router.put('/:id/toggle', auth, async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const productId = req.params.id;
+    
+    // Validate ObjectId format
+    if (!require('mongoose').Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+    
+    const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
@@ -188,15 +208,22 @@ router.put('/:id/toggle', auth, async (req, res) => {
 // @access  Private (Admin only)
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const productId = req.params.id;
+    
+    // Validate ObjectId format
+    if (!require('mongoose').Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+    
+    const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    await Product.findByIdAndDelete(req.params.id);
+    await Product.findByIdAndDelete(productId);
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
-    console.error(error);
+    console.error('Error deleting product:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

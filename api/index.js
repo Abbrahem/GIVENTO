@@ -185,44 +185,76 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Product by ID endpoint
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}$/)) {
+    // Product by ID endpoint - More flexible pattern to catch various ID formats
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]+$/)) {
       const productId = pathname.split('/').pop();
+      
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ message: 'Invalid product ID format' });
+      }
+      
       if (req.method === 'GET') {
-        const product = await Product.findById(productId);
-        if (!product) {
-          return res.status(404).json({ message: 'Product not found' });
+        try {
+          const product = await Product.findById(productId);
+          if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+          }
+          return res.json(product);
+        } catch (error) {
+          console.error('Error finding product:', error);
+          return res.status(500).json({ message: 'Server error' });
         }
-        return res.json(product);
       }
       if (req.method === 'PUT') {
-        const updates = req.body;
-        const product = await Product.findByIdAndUpdate(productId, updates, { new: true });
-        if (!product) {
-          return res.status(404).json({ message: 'Product not found' });
+        try {
+          const updates = req.body;
+          const product = await Product.findByIdAndUpdate(productId, updates, { new: true });
+          if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+          }
+          return res.json(product);
+        } catch (error) {
+          console.error('Error updating product:', error);
+          return res.status(500).json({ message: 'Server error' });
         }
-        return res.json(product);
       }
       if (req.method === 'DELETE') {
-        const product = await Product.findByIdAndDelete(productId);
-        if (!product) {
-          return res.status(404).json({ message: 'Product not found' });
+        try {
+          const product = await Product.findByIdAndDelete(productId);
+          if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+          }
+          return res.json({ message: 'Product deleted successfully' });
+        } catch (error) {
+          console.error('Error deleting product:', error);
+          return res.status(500).json({ message: 'Server error' });
         }
-        return res.json({ message: 'Product deleted successfully' });
       }
     }
 
-    // Product toggle availability endpoint
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/)) {
+    // Product toggle availability endpoint - More flexible pattern
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]+\/toggle$/)) {
       const productId = pathname.split('/')[3];
+      
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ message: 'Invalid product ID format' });
+      }
+      
       if (req.method === 'PUT') {
-        const product = await Product.findById(productId);
-        if (!product) {
-          return res.status(404).json({ message: 'Product not found' });
+        try {
+          const product = await Product.findById(productId);
+          if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+          }
+          product.isAvailable = !product.isAvailable;
+          await product.save();
+          return res.json(product);
+        } catch (error) {
+          console.error('Error toggling product availability:', error);
+          return res.status(500).json({ message: 'Server error' });
         }
-        product.isAvailable = !product.isAvailable;
-        await product.save();
-        return res.json(product);
       }
     }
 
