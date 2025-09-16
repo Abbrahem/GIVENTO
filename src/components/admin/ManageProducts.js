@@ -76,7 +76,7 @@ const ManageProducts = () => {
   const handleToggleAvailability = async (productId) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(getApiUrl(`/api/products/${productId}/toggle`), {
+      const response = await fetch(getApiUrl(`${API_ENDPOINTS.PRODUCT_BY_ID(productId)}/toggle`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,6 +1,6 @@
 // API Configuration - Combined deployment
 const BASE_URL = process.env.NODE_ENV === 'production'
-  ? process.env.REACT_APP_API_URL || ''  // لو معرفتوش، يفضل فاضي
+  ? process.env.REACT_APP_API_URL || 'https://giventoo-eg.vercel.app'  // Fallback to production URL
   : 'http://localhost:5000';
 
 console.log('API Config - NODE_ENV:', process.env.NODE_ENV);

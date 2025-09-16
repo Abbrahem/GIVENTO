@@ -61,10 +61,26 @@ module.exports = async (req, res) => {
     
     // Remove query parameters and clean the URL
     const cleanUrl = url.split('?')[0];
-    // Remove /api/products prefix for serverless routing
-    const apiPath = cleanUrl.replace(/^\/api\/products\/?/, '');
+    // Remove /api/products prefix for serverless routing - handle multiple patterns
+    let apiPath = cleanUrl;
+    if (apiPath.startsWith('/api/products/')) {
+      apiPath = apiPath.replace('/api/products/', '');
+    } else if (apiPath.startsWith('/api/products')) {
+      apiPath = apiPath.replace('/api/products', '');
+    } else if (apiPath.startsWith('/products/')) {
+      apiPath = apiPath.replace('/products/', '');
+    } else if (apiPath.startsWith('/products')) {
+      apiPath = apiPath.replace('/products', '');
+    }
+    
+    // Clean leading slash
+    if (apiPath.startsWith('/')) {
+      apiPath = apiPath.substring(1);
+    }
+    
     const pathParts = apiPath.split('/').filter(Boolean);
     console.log('Path parts after cleaning:', pathParts);
+    console.log('API Path:', apiPath);
     
     // GET /api/products - Get all products
     if (req.method === 'GET' && pathParts.length === 0) {
@@ -88,32 +104,70 @@ module.exports = async (req, res) => {
     // GET /api/products/:id - Get product by ID
     if (req.method === 'GET' && pathParts.length === 1 && pathParts[0] !== 'latest') {
       const productId = pathParts[0];
+      console.log('Trying to get product with ID:', productId);
+      console.log('Full URL path parts:', pathParts);
+      
       if (!mongoose.Types.ObjectId.isValid(productId)) {
-        return res.status(400).json({ message: 'Invalid product ID' });
+        console.log('Invalid product ID format:', productId);
+        // Let's also show what products exist for debugging
+        const allProducts = await Product.find({}, '_id name').limit(5);
+        return res.status(400).json({ 
+          message: 'Invalid product ID format',
+          receivedId: productId,
+          validFormat: 'Must be a valid MongoDB ObjectId (24 hex characters)',
+          existingProducts: allProducts.map(p => ({ id: p._id.toString(), name: p.name }))
+        });
       }
       
       const product = await Product.findById(productId);
       if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
+        console.log('Product not found in database:', productId);
+        // Let's also check what products exist for debugging
+        const allProducts = await Product.find({}, '_id name').limit(5);
+        const totalProducts = await Product.countDocuments();
+        return res.status(404).json({ 
+          message: 'Product not found',
+          requestedId: productId,
+          totalProductsInDB: totalProducts,
+          existingProducts: allProducts.map(p => ({ id: p._id.toString(), name: p.name }))
+        });
       }
+      
+      console.log('Product found successfully:', product.name);
       return res.json(product);
     }
 
     // PUT /api/products/:id/toggle - Toggle product availability
     if (req.method === 'PUT' && pathParts.length === 2 && pathParts[1] === 'toggle') {
       const productId = pathParts[0];
+      console.log('Trying to toggle product:', productId);
+      
       if (!mongoose.Types.ObjectId.isValid(productId)) {
-        return res.status(400).json({ message: 'Invalid product ID' });
+        console.log('Invalid product ID for toggle:', productId);
+        return res.status(400).json({ 
+          message: 'Invalid product ID format for toggle',
+          receivedId: productId
+        });
       }
       
       const product = await Product.findById(productId);
       if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
+        console.log('Product not found for toggle:', productId);
+        return res.status(404).json({ 
+          message: 'Product not found for toggle',
+          requestedId: productId
+        });
       }
       
+      const oldStatus = product.isAvailable;
       product.isAvailable = !product.isAvailable;
       await product.save();
-      return res.json(product);
+      
+      console.log(`Product ${productId} toggled from ${oldStatus} to ${product.isAvailable}`);
+      return res.json({
+        ...product.toObject(),
+        message: `Product availability changed from ${oldStatus} to ${product.isAvailable}`
+      });
     }
 
     // PUT /api/products/:id - Update product
@@ -134,15 +188,33 @@ module.exports = async (req, res) => {
     // DELETE /api/products/:id - Delete product
     if (req.method === 'DELETE' && pathParts.length === 1) {
       const productId = pathParts[0];
+      console.log('Trying to delete product:', productId);
+      
       if (!mongoose.Types.ObjectId.isValid(productId)) {
-        return res.status(400).json({ message: 'Invalid product ID' });
+        console.log('Invalid product ID for delete:', productId);
+        return res.status(400).json({ 
+          message: 'Invalid product ID format for delete',
+          receivedId: productId
+        });
       }
       
       const product = await Product.findByIdAndDelete(productId);
       if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
+        console.log('Product not found for delete:', productId);
+        return res.status(404).json({ 
+          message: 'Product not found for delete',
+          requestedId: productId
+        });
       }
-      return res.json({ message: 'Product deleted successfully' });
+      
+      console.log('Product deleted successfully:', product.name);
+      return res.json({ 
+        message: 'Product deleted successfully',
+        deletedProduct: {
+          id: product._id,
+          name: product.name
+        }
+      });
     }
 
     // POST /api/products - Create new product
@@ -171,9 +243,44 @@ module.exports = async (req, res) => {
       return res.status(201).json(product);
     }
 
-    return res.status(404).json({ message: 'Route not found' });
+    // GET /api/products/debug - Debug endpoint to see all product IDs
+    if (req.method === 'GET' && pathParts[0] === 'debug') {
+      const products = await Product.find({}, '_id name isAvailable createdAt').sort({ createdAt: -1 });
+      return res.json({
+        message: 'Debug info for products',
+        totalProducts: products.length,
+        products: products.map(p => ({
+          id: p._id.toString(),
+          name: p.name,
+          isAvailable: p.isAvailable,
+          createdAt: p.createdAt
+        }))
+      });
+    }
+
+    console.log('No matching route found for:', req.method, apiPath, pathParts);
+    return res.status(404).json({ 
+      message: 'Route not found',
+      method: req.method,
+      path: apiPath,
+      pathParts: pathParts,
+      availableRoutes: [
+        'GET /api/products',
+        'GET /api/products/latest',
+        'GET /api/products/debug',
+        'GET /api/products/:id',
+        'POST /api/products',
+        'PUT /api/products/:id',
+        'PUT /api/products/:id/toggle',
+        'DELETE /api/products/:id'
+      ]
+    });
   } catch (error) {
     console.error('Products API Error:', error);
-    return res.status(500).json({ message: 'Server error', error: error.message });
+    return res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }
