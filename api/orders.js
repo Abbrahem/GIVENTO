@@ -1,28 +1,21 @@
 const mongoose = require('mongoose');
 
-// Order Model
+// Order Model - Updated to match frontend cart structure
 const OrderSchema = new mongoose.Schema({
-  customerInfo: {
-    name: { type: String, required: true },
-    email: { type: String, required: true },
-    phone: { type: String, required: true }
-  },
+  customerName: { type: String, required: true },
+  customerPhone: { type: String, required: true },
+  alternatePhone: { type: String },
+  customerAddress: { type: String, required: true },
   items: [{
-    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-    name: String,
-    price: Number,
-    quantity: Number,
-    size: String,
-    color: String
+    product: { type: String, required: true }, // Product ID
+    productName: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    size: { type: String, required: true },
+    color: { type: String, required: true },
+    price: { type: Number, required: true },
+    image: { type: String }
   }],
   totalAmount: { type: Number, required: true },
-  shippingAddress: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String,
-    country: String
-  },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
@@ -114,19 +107,21 @@ module.exports = async (req, res) => {
 
     // POST /api/orders - Create new order
     if (req.method === 'POST' && pathParts.length === 0) {
-      const { customerInfo, items, totalAmount, shippingAddress } = req.body;
+      const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;
       
-      console.log('Creating order with data:', { customerInfo, items: items?.length, totalAmount });
+      console.log('Creating order with data:', { customerName, customerPhone, items: items?.length, totalAmount });
       
-      if (!customerInfo || !items || items.length === 0) {
-        return res.status(400).json({ message: 'Customer info and items are required' });
+      if (!customerName || !customerPhone || !customerAddress || !items || items.length === 0) {
+        return res.status(400).json({ message: 'Customer name, phone, address and items are required' });
       }
 
       const order = new Order({
-        customerInfo,
+        customerName,
+        customerPhone,
+        alternatePhone: alternatePhone || '',
+        customerAddress,
         items,
         totalAmount: parseFloat(totalAmount),
-        shippingAddress,
         status: 'pending'
       });
 

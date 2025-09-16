@@ -1,0 +1,36 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/products",
+      "destination": "/api/products"
+    },
+    {
+      "source": "/api/products/(.*)",
+      "destination": "/api/products"
+    },
+    {
+      "source": "/api/orders",
+      "destination": "/api/orders"
+    },
+    {
+      "source": "/api/orders/(.*)",
+      "destination": "/api/orders"
+    },
+    {
+      "source": "/api/auth/(.*)",
+      "destination": "/api/auth"
+    },
+    {
+      "source": "/api/categories",
+      "destination": "/api/categories"
+    },
+    {
+      "source": "/api/categories/(.*)",
+      "destination": "/api/categories"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health"
+    }
+  ]
+}

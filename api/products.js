@@ -57,7 +57,12 @@ module.exports = async (req, res) => {
 
     // Handle different URL patterns
     const url = req.url || '';
-    const pathParts = url.split('/').filter(Boolean);
+    console.log('Full URL received:', url);
+    
+    // Remove query parameters and clean the URL
+    const cleanUrl = url.split('?')[0];
+    const pathParts = cleanUrl.split('/').filter(Boolean);
+    console.log('Path parts:', pathParts);
     
     // GET /api/products - Get all products
     if (req.method === 'GET' && pathParts.length === 0) {
