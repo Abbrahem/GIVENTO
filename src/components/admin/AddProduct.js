@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../../config/api';
-import { processMultipleFiles, validateImageFile } from '../../utils/imageUtils';
+import { processMultipleFiles } from '../../utils/imageUtils';
 
 const AddProduct = () => {
   const [formData, setFormData] = useState({
