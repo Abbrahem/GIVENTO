@@ -55,35 +55,24 @@ module.exports = async (req, res) => {
     await connectDB();
     console.log('Categories API called:', req.method, req.url);
 
-    // Handle different URL patterns
-    const url = req.url || '';
-    const pathParts = url.split('/').filter(Boolean);
-    
-    // GET /api/categories - Get all categories
-    if (req.method === 'GET' && pathParts.length === 0) {
-      const categories = await Product.distinct('category');
-      const categoryList = categories.map(cat => ({ 
-        name: cat, 
-        slug: cat.toLowerCase().replace(/\s+/g, '-') 
-      }));
-      console.log(`Found ${categoryList.length} categories`);
-      return res.json(categoryList);
+    // Simple approach - just return categories for any GET request
+    if (req.method === 'GET') {
+      try {
+        const categories = await Product.distinct('category');
+        const categoryList = categories.map(cat => ({ 
+          name: cat, 
+          slug: cat.toLowerCase().replace(/\s+/g, '-') 
+        }));
+        console.log(`Found ${categoryList.length} categories:`, categoryList);
+        return res.status(200).json(categoryList);
+      } catch (dbError) {
+        console.error('Database error in categories:', dbError);
+        // Return empty array if no products exist yet
+        return res.status(200).json([]);
+      }
     }
 
-    // GET /api/categories/:slug/products - Get products by category
-    if (req.method === 'GET' && pathParts.length === 2 && pathParts[1] === 'products') {
-      const categorySlug = pathParts[0];
-      const categoryName = categorySlug.replace(/-/g, ' ');
-      
-      const products = await Product.find({ 
-        category: new RegExp(categoryName, 'i') 
-      }).sort({ createdAt: -1 });
-      
-      console.log(`Found ${products.length} products in category: ${categoryName}`);
-      return res.json(products);
-    }
-
-    return res.status(404).json({ message: 'Route not found' });
+    return res.status(405).json({ message: 'Method not allowed' });
   } catch (error) {
     console.error('Categories API Error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });

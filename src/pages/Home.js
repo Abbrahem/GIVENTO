@@ -10,11 +10,11 @@ const Home = () => {
   const categories = [
     { name: 'T-Shirt', image: '/t-shirt.JPG', slug: 't-shirt' },
     { name: 'Pants', image: '/pantss.JPG', slug: 'pants' },
-    { name: 'Shorts', image: '/hero.webp', slug: 'shorts' },
-    { name: 'Cap', image: '/cap.jpg', slug: 'cap' },
-    { name: 'Zip-up', image: '/hero.webp', slug: 'zip-up' },
-    { name: 'Hoodies', image: '/Size_Charthoodies.webp', slug: 'hoodies' },
-    { name: 'Polo Shirts', image: '/hero.webp', slug: 'polo shirts' }
+    { name: 'Shorts', image: '/pantss.JPG', slug: 'shorts' },
+    { name: 'Cap', image: '/t-shirt.JPG', slug: 'cap' },
+    { name: 'Zip-up', image: '/t-shirt.JPG', slug: 'zip-up' },
+    { name: 'Hoodies', image: '/t-shirt.JPG', slug: 'hoodies' },
+    { name: 'Polo Shirts', image: '/t-shirt.JPG', slug: 'polo shirts' }
   ];
 
   useEffect(() => {
@@ -48,12 +48,29 @@ const Home = () => {
       {/* Hero Section with Video */}
       <section id="hero" className="relative h-screen overflow-hidden">
         <video 
+          ref={(video) => {
+            if (video) {
+              video.currentTime = 15; // Start from 15 seconds
+            }
+          }}
           autoPlay 
           loop 
           muted 
-          className="absolute inset-0 w-full h-full object-cover"
+          playsInline
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover hero-video"
+          style={{ filter: 'brightness(1.1) contrast(1.05)' }}
+          onLoadedData={(e) => {
+            e.target.currentTime = 15; // Ensure it starts from 15 seconds
+          }}
+          onTimeUpdate={(e) => {
+            // Loop from 15 seconds to end, then restart at 15 seconds
+            if (e.target.currentTime < 15) {
+              e.target.currentTime = 15;
+            }
+          }}
         >
-          <source src="/hero-video.mp4" type="video/mp4" />
+          <source src="/home.mp4" type="video/mp4" />
           {/* Fallback to image if video doesn't load */}
           <div className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                style={{
@@ -61,15 +78,12 @@ const Home = () => {
                }}>
           </div>
         </video>
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-white px-4">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Welcome to<br/>GIVENTO
-            </h1>
+        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
+          <div className="text-center">
             <Link 
               to="/products"
-              className="inline-block bg-primary text-white px-8 py-4 text-lg font-semibold hover:bg-red-800 transition-all duration-300 rounded-full shadow-lg transform hover:scale-105 button-split-primary"
+              className="inline-block bg-primary text-white px-8 py-4 text-lg font-semibold hover:bg-red-800 transition-all duration-300 rounded-full shadow-lg transform hover:scale-105 button-split-primary whitespace-nowrap"
             >
               Shop Now
             </Link>

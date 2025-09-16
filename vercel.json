@@ -4,28 +4,52 @@
     {
       "src": "api/*.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "build/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/api/products(.*)",
-      "dest": "/api/products.js"
+      "src": "/api/health",
+      "dest": "/api/health.js"
     },
     {
-      "src": "/api/orders(.*)",
-      "dest": "/api/orders.js"
-    },
-    {
-      "src": "/api/auth(.*)",
-      "dest": "/api/auth.js"
-    },
-    {
-      "src": "/api/categories(.*)",
+      "src": "/api/categories/(.*)",
       "dest": "/api/categories.js"
     },
     {
-      "src": "/api/health",
-      "dest": "/api/health.js"
+      "src": "/api/categories",
+      "dest": "/api/categories.js"
+    },
+    {
+      "src": "/api/products/(.*)",
+      "dest": "/api/products.js"
+    },
+    {
+      "src": "/api/products",
+      "dest": "/api/products.js"
+    },
+    {
+      "src": "/api/orders/(.*)",
+      "dest": "/api/orders.js"
+    },
+    {
+      "src": "/api/orders",
+      "dest": "/api/orders.js"
+    },
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "/api/auth.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/build/$1"
     }
-  ]
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb-uri",
+    "JWT_SECRET": "@jwt-secret"
+  }
 }

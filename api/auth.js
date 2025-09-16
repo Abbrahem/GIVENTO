@@ -52,9 +52,11 @@ module.exports = async (req, res) => {
     await connectDB();
     console.log('Auth API called:', req.method, req.url);
 
-    // Handle different URL patterns
+    // Handle different URL patterns for Vercel serverless
     const url = req.url || '';
-    const pathParts = url.split('/').filter(Boolean);
+    // Remove /api/auth prefix for serverless routing
+    const apiPath = url.replace(/^\/api\/auth\/?/, '');
+    const pathParts = apiPath.split('/').filter(Boolean);
     
     // POST /api/auth/login - User login
     if (req.method === 'POST' && pathParts[0] === 'login') {

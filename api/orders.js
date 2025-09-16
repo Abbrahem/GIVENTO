@@ -65,17 +65,19 @@ module.exports = async (req, res) => {
     await connectDB();
     console.log('Orders API called:', req.method, req.url);
 
-    // Handle different URL patterns
+    // Handle different URL patterns for Vercel serverless
     const url = req.url || '';
     console.log('Full URL received:', url);
     
     // Remove query parameters and clean the URL
     const cleanUrl = url.split('?')[0];
-    const pathParts = cleanUrl.split('/').filter(Boolean);
-    console.log('Path parts:', pathParts);
+    // Remove /api/orders prefix for serverless routing
+    const apiPath = cleanUrl.replace(/^\/api\/orders\/?/, '');
+    const pathParts = apiPath.split('/').filter(Boolean);
+    console.log('Path parts after cleaning:', pathParts);
     
     // GET /api/orders - Get all orders
-    if (req.method === 'GET' && (pathParts.length === 0 || cleanUrl === '/api/orders')) {
+    if (req.method === 'GET' && pathParts.length === 0) {
       const orders = await Order.find().sort({ createdAt: -1 });
       console.log(`Found ${orders.length} orders`);
       

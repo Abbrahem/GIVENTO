@@ -8,7 +8,7 @@ const Navbar = () => {
 
   const marqueeMessages = [
     "Welcome to Givento",
-    "SIGN UP FOR 50ٍ% OFF YOUR FIRST PURCHASE",
+    "BUYFOR 50ٍ% OFF YOUR FIRST ORDER",
     "SHOP THE SUMMER COLLECTION"
   ];
 

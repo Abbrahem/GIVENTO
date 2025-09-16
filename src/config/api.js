@@ -1,6 +1,6 @@
 // API Configuration - Works for both local and Vercel
 const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://giventoo-eg.vercel.app' 
+  ? process.env.REACT_APP_API_URL || 'https://giventoo-eg.vercel.app'
   : 'http://localhost:5000';
 
 console.log('API Config - NODE_ENV:', process.env.NODE_ENV);
@@ -73,7 +73,9 @@ export const getImageUrl = (imagePath) => {
 // Export for easy access
 export { API_ENDPOINTS, BASE_URL };
 
-export default {
+const apiConfig = {
   BASE_URL,
   ENDPOINTS: API_ENDPOINTS
 };
+
+export default apiConfig;
