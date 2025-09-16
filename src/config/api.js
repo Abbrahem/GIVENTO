@@ -1,6 +1,6 @@
 // API Configuration - Works for both local and Vercel
 const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? process.env.REACT_APP_API_URL || 'https://giventoo-eg.vercel.app'
+  ? process.env.REACT_APP_API_URL || 'https://giventoo-iap8zpwnn-abrahem-elgazalys-projects.vercel.app'
   : 'http://localhost:5000';
 
 console.log('API Config - NODE_ENV:', process.env.NODE_ENV);
