@@ -1,36 +1,31 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/products",
-      "destination": "/api/products"
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/products(.*)",
+      "dest": "/api/products.js"
     },
     {
-      "source": "/api/products/(.*)",
-      "destination": "/api/products"
+      "src": "/api/orders(.*)",
+      "dest": "/api/orders.js"
     },
     {
-      "source": "/api/orders",
-      "destination": "/api/orders"
+      "src": "/api/auth(.*)",
+      "dest": "/api/auth.js"
     },
     {
-      "source": "/api/orders/(.*)",
-      "destination": "/api/orders"
+      "src": "/api/categories(.*)",
+      "dest": "/api/categories.js"
     },
     {
-      "source": "/api/auth/(.*)",
-      "destination": "/api/auth"
-    },
-    {
-      "source": "/api/categories",
-      "destination": "/api/categories"
-    },
-    {
-      "source": "/api/categories/(.*)",
-      "destination": "/api/categories"
-    },
-    {
-      "source": "/api/health",
-      "destination": "/api/health"
+      "src": "/api/health",
+      "dest": "/api/health.js"
     }
   ]
 }

@@ -65,9 +65,15 @@ module.exports = async (req, res) => {
     console.log('Path parts:', pathParts);
     
     // GET /api/products - Get all products
-    if (req.method === 'GET' && pathParts.length === 0) {
+    if (req.method === 'GET' && (pathParts.length === 0 || cleanUrl === '/api/products')) {
       const products = await Product.find().sort({ createdAt: -1 });
       console.log(`Found ${products.length} products`);
+      
+      // Ensure we always return an array
+      if (!Array.isArray(products)) {
+        return res.json([]);
+      }
+      
       return res.json(products);
     }
 

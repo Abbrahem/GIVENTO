@@ -67,12 +67,23 @@ module.exports = async (req, res) => {
 
     // Handle different URL patterns
     const url = req.url || '';
-    const pathParts = url.split('/').filter(Boolean);
+    console.log('Full URL received:', url);
+    
+    // Remove query parameters and clean the URL
+    const cleanUrl = url.split('?')[0];
+    const pathParts = cleanUrl.split('/').filter(Boolean);
+    console.log('Path parts:', pathParts);
     
     // GET /api/orders - Get all orders
-    if (req.method === 'GET' && pathParts.length === 0) {
+    if (req.method === 'GET' && (pathParts.length === 0 || cleanUrl === '/api/orders')) {
       const orders = await Order.find().sort({ createdAt: -1 });
       console.log(`Found ${orders.length} orders`);
+      
+      // Ensure we always return an array
+      if (!Array.isArray(orders)) {
+        return res.json([]);
+      }
+      
       return res.json(orders);
     }
 
