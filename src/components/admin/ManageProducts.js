@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
-import { getApiUrl, getImageUrl, API_ENDPOINTS } from '../../config/api';
+import { getApiUrl, API_ENDPOINTS } from '../../config/api';
+import { getImageUrl } from '../../utils/imageUtils';
 
 const ManageProducts = () => {
   const [products, setProducts] = useState([]);
@@ -128,22 +129,27 @@ const ManageProducts = () => {
   const handleSaveEdit = async (updatedProduct) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const formData = new FormData();
       
-      formData.append('name', updatedProduct.name);
-      formData.append('description', updatedProduct.description);
-      formData.append('originalPrice', updatedProduct.originalPrice);
-      formData.append('salePrice', updatedProduct.salePrice);
-      formData.append('category', updatedProduct.category);
-      formData.append('sizes', JSON.stringify(updatedProduct.sizes));
-      formData.append('colors', JSON.stringify(updatedProduct.colors));
+      // Send JSON data (images are already base64 in the product)
+      const productData = {
+        name: updatedProduct.name,
+        description: updatedProduct.description,
+        originalPrice: updatedProduct.originalPrice,
+        salePrice: updatedProduct.salePrice,
+        category: updatedProduct.category,
+        sizes: updatedProduct.sizes,
+        colors: updatedProduct.colors
+        // Note: We're not updating images in this edit modal
+        // Images remain the same base64 strings from MongoDB
+      };
 
       const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(updatedProduct._id)), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData,
+        body: JSON.stringify(productData),
       });
 
       if (response.ok) {

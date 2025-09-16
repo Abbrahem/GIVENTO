@@ -1,7 +1,16 @@
 const express = require('express');
 const Category = require('../models/Category');
 const auth = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { processImageToBase64, validateImageFile } = require('../middleware/upload');
+const multer = require('multer');
+
+// Configure multer for memory storage (no file system)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 const router = express.Router();
 
@@ -29,12 +38,18 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       return res.status(400).json({ message: 'Category image is required' });
     }
 
-    const image = `/uploads/${req.file.filename}`;
+    // Validate image type
+    if (!validateImageFile(req.file.mimetype)) {
+      return res.status(400).json({ message: `Invalid file type: ${req.file.mimetype}. Only JPEG, PNG, WebP, and GIF are allowed.` });
+    }
+    
+    // Process image to base64
+    const base64Image = await processImageToBase64(req.file.buffer, req.file.mimetype);
 
     const category = new Category({
       name,
       description,
-      image
+      image: base64Image
     });
 
     await category.save();
@@ -60,7 +75,13 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
     // Update image if new one is uploaded
     let image = category.image;
     if (req.file) {
-      image = `/uploads/${req.file.filename}`;
+      // Validate image type
+      if (!validateImageFile(req.file.mimetype)) {
+        return res.status(400).json({ message: `Invalid file type: ${req.file.mimetype}. Only JPEG, PNG, WebP, and GIF are allowed.` });
+      }
+      
+      // Process image to base64
+      image = await processImageToBase64(req.file.buffer, req.file.mimetype);
     }
 
     category.name = name || category.name;

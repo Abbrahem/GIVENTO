@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../../config/api';
+import { processMultipleFiles, validateImageFile } from '../../utils/imageUtils';
 
 const AddProduct = () => {
   const [formData, setFormData] = useState({
@@ -78,8 +79,30 @@ const AddProduct = () => {
     });
   };
 
-  const handleImageChange = (e) => {
-    setImages(Array.from(e.target.files));
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    
+    try {
+      // Validate and process images to base64
+      const processedImages = await processMultipleFiles(files);
+      setImages(processedImages);
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'تم تحميل الصور بنجاح',
+        text: `تم معالجة ${processedImages.length} صورة وضغطها`,
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'خطأ في تحميل الصور',
+        text: error.message,
+        confirmButtonColor: '#dc2626'
+      });
+      setImages([]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -99,26 +122,26 @@ const AddProduct = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const formDataToSend = new FormData();
       
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('originalPrice', formData.originalPrice);
-      formDataToSend.append('salePrice', formData.salePrice);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('sizes', JSON.stringify(formData.sizes));
-      formDataToSend.append('colors', JSON.stringify(formData.colors));
-      
-      images.forEach((image) => {
-        formDataToSend.append('images', image);
-      });
+      // Send JSON data with base64 images
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        originalPrice: formData.originalPrice,
+        salePrice: formData.salePrice,
+        category: formData.category,
+        sizes: formData.sizes,
+        colors: formData.colors,
+        images: images // Already base64 strings
+      };
 
       const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formDataToSend,
+        body: JSON.stringify(productData),
       });
 
       if (response.ok) {

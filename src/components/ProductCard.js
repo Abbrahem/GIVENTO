@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { getImageUrl } from '../config/api';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ProductCard = ({ product }) => {
   return (

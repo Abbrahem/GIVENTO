@@ -1,38 +1,50 @@
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const sharp = require('sharp');
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  // Check if file is an image
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
+// Image compression and base64 conversion utility
+const processImageToBase64 = async (buffer, mimetype) => {
+  try {
+    let processedBuffer;
+    
+    // Compress and resize image using Sharp
+    if (mimetype.includes('jpeg') || mimetype.includes('jpg')) {
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    } else if (mimetype.includes('png')) {
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .png({ quality: 80 })
+        .toBuffer();
+    } else if (mimetype.includes('webp')) {
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+    } else {
+      // Convert other formats to JPEG
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    }
+    
+    // Convert to base64
+    const base64String = `data:${mimetype};base64,${processedBuffer.toString('base64')}`;
+    return base64String;
+  } catch (error) {
+    console.error('Error processing image:', error);
+    throw new Error('Failed to process image');
   }
 };
 
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
-});
+// Validate image file
+const validateImageFile = (mimetype) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  return allowedTypes.includes(mimetype);
+};
 
-module.exports = upload;
+module.exports = {
+  processImageToBase64,
+  validateImageFile
+};

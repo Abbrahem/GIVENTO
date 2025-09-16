@@ -1,7 +1,16 @@
 const express = require('express');
 const Product = require('../models/Product');
 const auth = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { processImageToBase64, validateImageFile } = require('../middleware/upload');
+const multer = require('multer');
+
+// Configure multer for memory storage (no file system)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 const router = express.Router();
 
@@ -54,8 +63,24 @@ router.post('/', auth, upload.array('images', 10), async (req, res) => {
   try {
     const { name, description, originalPrice, salePrice, category, sizes, colors } = req.body;
     
-    // Process uploaded images
-    const images = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    // Process uploaded images to base64
+    const images = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        // Validate image type
+        if (!validateImageFile(file.mimetype)) {
+          return res.status(400).json({ message: `Invalid file type: ${file.mimetype}. Only JPEG, PNG, WebP, and GIF are allowed.` });
+        }
+        
+        try {
+          // Compress and convert to base64
+          const base64Image = await processImageToBase64(file.buffer, file.mimetype);
+          images.push(base64Image);
+        } catch (error) {
+          return res.status(400).json({ message: `Failed to process image: ${file.originalname}` });
+        }
+      }
+    }
     
     if (images.length === 0) {
       return res.status(400).json({ message: 'At least one image is required' });
@@ -96,10 +121,24 @@ router.put('/:id', auth, upload.array('images', 10), async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Process uploaded images
+    // Process uploaded images to base64
     let images = product.images;
     if (req.files && req.files.length > 0) {
-      images = req.files.map(file => `/uploads/${file.filename}`);
+      images = [];
+      for (const file of req.files) {
+        // Validate image type
+        if (!validateImageFile(file.mimetype)) {
+          return res.status(400).json({ message: `Invalid file type: ${file.mimetype}. Only JPEG, PNG, WebP, and GIF are allowed.` });
+        }
+        
+        try {
+          // Compress and convert to base64
+          const base64Image = await processImageToBase64(file.buffer, file.mimetype);
+          images.push(base64Image);
+        } catch (error) {
+          return res.status(400).json({ message: `Failed to process image: ${file.originalname}` });
+        }
+      }
     }
 
     // Parse sizes and colors if they're strings

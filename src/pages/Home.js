@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ImageSlider from '../components/ImageSlider';
 import TikTokSection from '../components/TikTokSection';
-import { getApiUrl, getImageUrl, API_ENDPOINTS } from '../config/api';
+import { getApiUrl, API_ENDPOINTS } from '../config/api';
+import { getImageUrl } from '../utils/imageUtils';
 
 const Home = () => {
   const [latestProduct, setLatestProduct] = useState(null);

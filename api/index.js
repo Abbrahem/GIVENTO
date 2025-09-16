@@ -1,9 +1,54 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const sharp = require('sharp');
 
 // Import required modules for Vercel serverless
 const { parse } = require('url');
+
+// Image compression and base64 conversion utility
+const processImageToBase64 = async (buffer, mimetype) => {
+  try {
+    let processedBuffer;
+    
+    // Compress and resize image using Sharp
+    if (mimetype.includes('jpeg') || mimetype.includes('jpg')) {
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    } else if (mimetype.includes('png')) {
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .png({ quality: 80 })
+        .toBuffer();
+    } else if (mimetype.includes('webp')) {
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+    } else {
+      // Convert other formats to JPEG
+      processedBuffer = await sharp(buffer)
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    }
+    
+    // Convert to base64
+    const base64String = `data:${mimetype};base64,${processedBuffer.toString('base64')}`;
+    return base64String;
+  } catch (error) {
+    console.error('Error processing image:', error);
+    throw new Error('Failed to process image');
+  }
+};
+
+// Validate image file
+const validateImageFile = (mimetype) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  return allowedTypes.includes(mimetype);
+};
 
 // Models
 const ProductSchema = new mongoose.Schema({
@@ -87,10 +132,11 @@ const connectDB = async () => {
 };
 
 module.exports = async (req, res) => {
-  // Enable CORS
+  // Enable CORS for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -109,10 +155,23 @@ module.exports = async (req, res) => {
       }
       if (req.method === 'POST') {
         const { name, description, originalPrice, salePrice, category, sizes, colors, images } = req.body;
+        
+        // Validate that images are provided and are base64 strings
+        if (!images || !Array.isArray(images) || images.length === 0) {
+          return res.status(400).json({ message: 'At least one image is required' });
+        }
+        
+        // Validate base64 images
+        for (const image of images) {
+          if (!image.startsWith('data:image/')) {
+            return res.status(400).json({ message: 'Invalid image format. Images must be base64 encoded.' });
+          }
+        }
+        
         const product = new Product({
           name, description, originalPrice: parseFloat(originalPrice),
           salePrice: parseFloat(salePrice), category, sizes: sizes || [],
-          colors: colors || [], images: images || []
+          colors: colors || [], images
         });
         await product.save();
         return res.status(201).json(product);
@@ -245,6 +304,68 @@ module.exports = async (req, res) => {
           category: new RegExp(categoryName, 'i') 
         }).sort({ createdAt: -1 });
         return res.json(products);
+      }
+    }
+
+    // Image upload endpoint for processing files to base64
+    if (pathname === '/api/upload-image') {
+      if (req.method === 'POST') {
+        try {
+          const contentType = req.headers['content-type'];
+          if (!contentType || !contentType.includes('multipart/form-data')) {
+            return res.status(400).json({ message: 'Content-Type must be multipart/form-data' });
+          }
+          
+          // Parse multipart data manually for Vercel
+          const chunks = [];
+          req.on('data', chunk => chunks.push(chunk));
+          req.on('end', async () => {
+            try {
+              const buffer = Buffer.concat(chunks);
+              const boundary = contentType.split('boundary=')[1];
+              
+              // Simple multipart parser for single image
+              const parts = buffer.toString('binary').split(`--${boundary}`);
+              let imageBuffer = null;
+              let mimetype = null;
+              
+              for (const part of parts) {
+                if (part.includes('Content-Type: image/')) {
+                  const lines = part.split('\r\n');
+                  const contentTypeIndex = lines.findIndex(line => line.includes('Content-Type:'));
+                  if (contentTypeIndex !== -1) {
+                    mimetype = lines[contentTypeIndex].split('Content-Type: ')[1];
+                    const dataStartIndex = part.indexOf('\r\n\r\n') + 4;
+                    const dataEndIndex = part.lastIndexOf('\r\n');
+                    const imageData = part.slice(dataStartIndex, dataEndIndex);
+                    imageBuffer = Buffer.from(imageData, 'binary');
+                    break;
+                  }
+                }
+              }
+              
+              if (!imageBuffer || !mimetype) {
+                return res.status(400).json({ message: 'No valid image found in request' });
+              }
+              
+              if (!validateImageFile(mimetype)) {
+                return res.status(400).json({ message: `Invalid file type: ${mimetype}` });
+              }
+              
+              const base64Image = await processImageToBase64(imageBuffer, mimetype);
+              return res.json({ image: base64Image });
+              
+            } catch (error) {
+              console.error('Image processing error:', error);
+              return res.status(500).json({ message: 'Failed to process image' });
+            }
+          });
+          
+          return; // Don't send response yet, wait for data
+        } catch (error) {
+          console.error('Upload error:', error);
+          return res.status(500).json({ message: 'Upload failed' });
+        }
       }
     }
 

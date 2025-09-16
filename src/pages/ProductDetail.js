@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
-import { getApiUrl, getImageUrl, API_ENDPOINTS } from '../config/api';
+import { getApiUrl, API_ENDPOINTS } from '../config/api';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ProductDetail = () => {
   const { id } = useParams();

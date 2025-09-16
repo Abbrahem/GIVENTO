@@ -32,41 +32,8 @@ export const getApiUrl = (endpoint) => {
   return url;
 };
 
-// Helper function to get image URL for production and development
-export const getImageUrl = (imagePath) => {
-  if (!imagePath) {
-    return '/placeholder-image.jpg';
-  }
-  
-  // If it's already a full URL, return as is
-  if (imagePath.startsWith('http')) {
-    return imagePath;
-  }
-  
-  // If it's a base64 image, return as is
-  if (imagePath.startsWith('data:image/')) {
-    return imagePath;
-  }
-  
-  // If it's a relative path to public folder (static images)
-  if (imagePath.startsWith('/') && !imagePath.startsWith('/uploads/')) {
-    return imagePath;
-  }
-  
-  // For file uploads in development
-  if (imagePath.startsWith('/uploads/')) {
-  
-      return `${BASE_URL}${imagePath}`;
-     }
-  
-  // If it looks like a filename without path, assume it's in public folder
-  if (!imagePath.includes('/') && (imagePath.includes('.jpg') || imagePath.includes('.png') || imagePath.includes('.webp'))) {
-    return `/${imagePath}`;
-  }
-  
-  // Default fallback
-  return '/placeholder-image.jpg';
-};
+// Note: getImageUrl has been moved to utils/imageUtils.js
+// This file now only handles API configuration
 
 // Export for easy access
 export { API_ENDPOINTS, BASE_URL };

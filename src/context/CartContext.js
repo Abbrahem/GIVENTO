@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer } from 'react';
-import { getImageUrl } from '../config/api';
+import { getImageUrl } from '../utils/imageUtils';
 
 const CartContext = createContext();
 
