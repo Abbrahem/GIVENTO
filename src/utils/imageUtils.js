@@ -91,9 +91,9 @@ export const getImageUrl = (imageData) => {
   
   // If it's a legacy file path, return placeholder
   if (typeof imageData === 'string' && imageData.startsWith('/uploads/')) {
-    return '/api/placeholder-image.jpg';
+    return '/placeholder-image.jpg';
   }
   
   // Default placeholder
-  return '/api/placeholder-image.jpg';
+  return '/placeholder-image.jpg';
 };
