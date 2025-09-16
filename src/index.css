@@ -214,3 +214,36 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Image Quality Optimization */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: high-quality;
+  -ms-interpolation-mode: bicubic;
+  filter: contrast(1.1) saturate(1.1) brightness(1.01);
+  -webkit-filter: contrast(1.1) saturate(1.1) brightness(1.01);
+}
+
+/* Category Card Images */
+.category-image {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: high-quality;
+  filter: contrast(1.15) saturate(1.2) brightness(1.02);
+  -webkit-filter: contrast(1.15) saturate(1.2) brightness(1.02);
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Slider Images */
+.slider-image {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: high-quality;
+  filter: contrast(1.1) saturate(1.15) brightness(1.03);
+  -webkit-filter: contrast(1.1) saturate(1.15) brightness(1.03);
+}

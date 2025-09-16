@@ -11,8 +11,8 @@ const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      title: 'Summer Collection',
-      image: '/hero.webp',
+      title: 'T-Shirt Collection',
+      image: '/t-shirt.JPG',
       buttonText: 'Shop New',
       link: '/category/t-shirt'
     },
@@ -149,8 +149,10 @@ const ImageSlider = () => {
                 <img 
                   src={slide.image} 
                   alt={slide.title}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover object-center slider-image"
+                  style={{ imageRendering: 'high-quality' }}
                   draggable={false}
+                  loading="lazy"
                 />
                 
                 {/* Dark Overlay */}

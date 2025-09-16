@@ -29,7 +29,7 @@ export const getApiUrl = (endpoint) => {
   return url;
 };
 
-// Helper function to get image URL for local development
+// Helper function to get image URL for production and development
 export const getImageUrl = (imagePath) => {
   if (!imagePath) {
     return '/placeholder-image.jpg';
@@ -45,10 +45,20 @@ export const getImageUrl = (imagePath) => {
     return imagePath;
   }
   
-  // For local file uploads, build full URL
+  // For production, images should be base64 or external URLs
+  // For local development, handle file uploads
   if (imagePath.startsWith('/uploads/')) {
-    const imageUrl = `${BASE_URL}${imagePath}`;
-    return imageUrl;
+    // In production, this shouldn't happen as we use base64
+    // But for development, build full URL
+    if (process.env.NODE_ENV === 'production') {
+      return '/placeholder-image.jpg';
+    }
+    return `${BASE_URL}${imagePath}`;
+  }
+  
+  // If it's a relative path to public folder
+  if (imagePath.startsWith('/') && !imagePath.startsWith('/uploads/')) {
+    return imagePath;
   }
   
   // Default fallback

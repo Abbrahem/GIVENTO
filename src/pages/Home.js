@@ -8,12 +8,12 @@ const Home = () => {
   const [latestProduct, setLatestProduct] = useState(null);
 
   const categories = [
-    { name: 'T-Shirt', image: '/hero.webp', slug: 't-shirt' },
-    { name: 'Pants', image: '/hero.webp', slug: 'pants' },
+    { name: 'T-Shirt', image: '/t-shirt.JPG', slug: 't-shirt' },
+    { name: 'Pants', image: '/pantss.JPG', slug: 'pants' },
     { name: 'Shorts', image: '/hero.webp', slug: 'shorts' },
-    { name: 'Cap', image: '/hero.webp', slug: 'cap' },
+    { name: 'Cap', image: '/cap.jpg', slug: 'cap' },
     { name: 'Zip-up', image: '/hero.webp', slug: 'zip-up' },
-    { name: 'Hoodies', image: '/hero.webp', slug: 'hoodies' },
+    { name: 'Hoodies', image: '/Size_Charthoodies.webp', slug: 'hoodies' },
     { name: 'Polo Shirts', image: '/hero.webp', slug: 'polo shirts' }
   ];
 
@@ -91,7 +91,9 @@ const Home = () => {
                 <img 
                   src={category.image} 
                   alt={category.name}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-300 category-image"
+                  style={{ imageRendering: 'high-quality' }}
+                  loading="lazy"
                 />
                 {/* Dark Overlay for better text visibility */}
                 <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-40 transition-all duration-300"></div>
