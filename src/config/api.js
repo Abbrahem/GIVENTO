@@ -1,7 +1,7 @@
 // API Configuration - Combined deployment
 const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? process.env.REACT_APP_API_URL || ''
-  : 'http://localhost:5000';
+  ? ''   // production → يضرب على نفس الدومين بتاع Vercel
+  : 'http://localhost:5000'; // development → يضرب على الباك إند المحلي
 
 console.log('API Config - NODE_ENV:', process.env.NODE_ENV);
 console.log('API Config - BASE_URL:', BASE_URL);
@@ -55,11 +55,9 @@ export const getImageUrl = (imagePath) => {
   
   // For file uploads in development
   if (imagePath.startsWith('/uploads/')) {
-    if (process.env.NODE_ENV === 'production') {
-      return '/placeholder-image.jpg';
-    }
-    return `${BASE_URL}${imagePath}`;
-  }
+  
+      return `${BASE_URL}${imagePath}`;
+     }
   
   // If it looks like a filename without path, assume it's in public folder
   if (!imagePath.includes('/') && (imagePath.includes('.jpg') || imagePath.includes('.png') || imagePath.includes('.webp'))) {
