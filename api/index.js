@@ -215,8 +215,8 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Product by ID endpoint - Match MongoDB ObjectId (24 hex characters)
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}$/)) {
+    // Product by ID endpoint - Match MongoDB ObjectId (24 hex characters) or any valid ID
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}$/) || pathname.match(/^\/api\/products\/[a-zA-Z0-9]{20,30}$/)) {
       const productId = pathname.split('/').pop();
       console.log('🆔 Extracted Product ID:', productId);
       console.log('📏 Product ID length:', productId.length);
@@ -280,8 +280,8 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Product toggle availability endpoint - Match MongoDB ObjectId (24 hex characters)
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/)) {
+    // Product toggle availability endpoint - Match MongoDB ObjectId (24 hex characters) or any valid ID
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/) || pathname.match(/^\/api\/products\/[a-zA-Z0-9]{20,30}\/toggle$/)) {
       const productId = pathname.split('/')[3];
       console.log('🔄 Extracted Product ID for toggle:', productId);
       console.log('📏 Product ID length for toggle:', productId.length);
@@ -465,6 +465,17 @@ module.exports = async (req, res) => {
         status: 'OK', 
         message: 'API is running',
         mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+      });
+    }
+
+    // Test endpoint to verify routing
+    if (pathname === '/api/test') {
+      return res.json({
+        message: 'API routing is working!',
+        pathname,
+        method: req.method,
         timestamp: new Date().toISOString()
       });
     }
