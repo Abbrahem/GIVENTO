@@ -2,55 +2,31 @@ import Order from '../../backend/models/Order.js';
 import mongoose from 'mongoose';
 
 export default async function handler(req, res) {
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    return res.status(405).json({ 
-      success: false, 
-      message: 'Method not allowed' 
-    });
-  }
-
+  console.log('🚀 Orders API called');
+  
   try {
-    // Check MongoDB connection
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined');
-    }
-
-    // Connect to MongoDB if not connected
+    console.log('🔌 MongoDB State:', mongoose.connection.readyState);
+    
     if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-      });
+      console.log('📡 Connecting to MongoDB...');
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log('✅ MongoDB Connected');
     }
 
-    // Fetch orders
-    const orders = await Order.find()
-      .select('customerName customerPhone customerAddress items totalAmount status createdAt')
-      .populate('items.product', 'name images')
-      .sort({ createdAt: -1 })
-      .lean();
+    console.log('📦 Fetching orders...');
+    const orders = await Order.find().lean();
+    console.log(`✨ Found ${orders.length} orders`);
 
-    // Return success response
-    return res.status(200).json({
-      success: true,
-      count: orders.length,
-      orders: orders
-    });
+    return res.status(200).json({ success: true, orders });
 
   } catch (error) {
-    // Log the error server-side
-    console.error('Orders API Error:', {
-      message: error.message,
-      stack: error.stack,
-      mongoState: mongoose.connection.readyState
-    });
-
-    // Return error response
-    return res.status(500).json({
+    console.error('❌ Error in orders API:', error);
+    console.error('Stack:', error.stack);
+    
+    return res.status(500).json({ 
       success: false,
-      message: 'Internal server error',
-      error: error.message,
+      message: error.message,
+      type: error.name,
       mongoState: mongoose.connection.readyState
     });
   }
