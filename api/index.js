@@ -630,6 +630,64 @@ const handler = async (req, res) => {
       }
     }
 
+    // Update order status
+    if (pathname.match(/^\/api\/orders\/[^/]+\/status$/)) {
+      if (req.method === 'PUT') {
+        try {
+          const auth = authenticateAdmin(req);
+          if (!auth.isValid) {
+            return res.status(401).json({ message: auth.error });
+          }
+
+          const orderId = pathname.split('/')[3];
+          const { status } = req.body;
+
+          if (!status || !['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status value' });
+          }
+
+          const order = await Order.findByIdAndUpdate(
+            orderId,
+            { status },
+            { new: true }
+          ).populate('items.product', 'name images');
+
+          if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+          }
+
+          return res.json(order);
+        } catch (error) {
+          console.error('Error updating order status:', error);
+          return res.status(500).json({ message: 'Failed to update order status' });
+        }
+      }
+    }
+
+    // Delete order
+    if (pathname.match(/^\/api\/orders\/[^/]+$/)) {
+      if (req.method === 'DELETE') {
+        try {
+          const auth = authenticateAdmin(req);
+          if (!auth.isValid) {
+            return res.status(401).json({ message: auth.error });
+          }
+
+          const orderId = pathname.split('/')[3];
+          const order = await Order.findByIdAndDelete(orderId);
+
+          if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+          }
+
+          return res.json({ message: 'Order deleted successfully' });
+        } catch (error) {
+          console.error('Error deleting order:', error);
+          return res.status(500).json({ message: 'Failed to delete order' });
+        }
+      }
+    }
+
     // Orders cleanup endpoint
     if (pathname === '/api/orders/cleanup') {
       if (req.method === 'DELETE') {
