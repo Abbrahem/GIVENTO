@@ -1,163 +1,123 @@
 const mongoose = require('mongoose');
+const Order = require('../backend/models/Order');
 const jwt = require('jsonwebtoken');
-require('./models/Product'); // Import Product model
 
-// Order Schema
-const OrderSchema = new mongoose.Schema({
-  customerName: { type: String, required: true },
-  customerPhone: { type: String, required: true },
-  alternatePhone: { type: String },
-  customerAddress: { type: String, required: true },
-  items: [{
-    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-    productName: { type: String, required: true },
-    price: { type: Number, required: true },
-    quantity: { type: Number, required: true },
-    size: String,
-    color: String,
-    image: String
-  }],
-  totalAmount: { type: Number, required: true },
-  status: {
-    type: String,
-    enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
-    default: 'pending'
-  }
-}, { timestamps: true });
-
-// Register Order model
-const Order = mongoose.models.Order || mongoose.model('Order', OrderSchema);
-
-// Database connection
-const connectDB = async () => {
-  try {
-    if (mongoose.connection.readyState === 1) {
-      return mongoose.connection;
-    }
-
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined');
-    }
-
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
-      socketTimeoutMS: 45000
-    });
-
-    return mongoose.connection;
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
-
-// Authentication middleware
 const authenticateAdmin = (req) => {
   try {
+    console.log('🔐 Authenticating admin...');
     const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return { isValid: false, error: 'No token provided' };
     }
-
+    
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (!decoded.user?.isAdmin) {
+    
+    if (!decoded.user || !decoded.user.isAdmin) {
       return { isValid: false, error: 'Admin access required' };
     }
-
+    
     return { isValid: true, user: decoded.user };
   } catch (error) {
-    return { isValid: false, error: 'Invalid token' };
+    if (error.name === 'TokenExpiredError') {
+      return { isValid: false, error: 'Token expired', code: 'TOKEN_EXPIRED' };
+    } else if (error.name === 'JsonWebTokenError') {
+      return { isValid: false, error: 'Invalid token', code: 'INVALID_TOKEN' };
+    }
+    return { isValid: false, error: 'Token verification failed', code: 'TOKEN_ERROR' };
   }
 };
 
-// Main handler for all order routes
+// Parse request body for POST/PUT requests
+const parseBody = async (req) => {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        if (body) {
+          resolve(JSON.parse(body));
+        } else {
+          resolve({});
+        }
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
+};
+
 const handler = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+  
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  try {
-    await connectDB();
-    
-    // Get order ID from URL if present
-    const orderId = req.url.split('/orders/')[1]?.split('/')[0];
-    const isStatusUpdate = req.url.endsWith('/status');
+  // Get path from URL
+  const path = req.url;
+  console.log('🔍 Request path:', path);
 
-    // LIST ALL ORDERS
-    if (req.method === 'GET' && !orderId) {
+  // Parse body for POST/PUT requests
+  if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type']?.includes('application/json')) {
+    try {
+      req.body = await parseBody(req);
+    } catch (error) {
+      return res.status(400).json({ message: 'Invalid JSON in request body' });
+    }
+  }
+
+  // Match the exact path for order status updates
+  const statusMatch = path.match(/^\/api\/orders\/([^/]+)\/status$/);
+  // Match the exact path for order deletion
+  const deleteMatch = path.match(/^\/api\/orders\/([^/]+)$/);
+  // Match cleanup path
+  const isCleanup = path === '/api/orders/cleanup';
+
+  try {
+    // Get orders list
+    if (path === '/api/orders' && req.method === 'GET') {
       const auth = authenticateAdmin(req);
       if (!auth.isValid) {
         return res.status(401).json({ message: auth.error });
       }
 
-      console.log('📊 Fetching orders...');
       const orders = await Order.find()
         .select('customerName customerPhone customerAddress items totalAmount status createdAt')
         .populate('items.product', 'name images')
         .sort({ createdAt: -1 })
-        .lean()
-        .exec();
-      console.log(`✅ Found ${orders.length} orders`);
+        .lean();
 
       return res.json({
         success: true,
         count: orders.length,
-        orders: orders.map(order => ({
-          ...order,
-          items: order.items.map(item => ({
-            ...item,
-            product: item.product ? {
-              id: item.product._id,
-              name: item.product.name,
-              image: item.product.images?.[0]
-            } : null
-          }))
-        }))
+        orders: orders
       });
     }
 
-    // GET SINGLE ORDER
-    if (req.method === 'GET' && orderId) {
-      const auth = authenticateAdmin(req);
-      if (!auth.isValid) {
-        return res.status(401).json({ message: auth.error });
+    // Create new order
+    if (path === '/api/orders' && req.method === 'POST') {
+      const { customerName, customerPhone, customerAddress, items, totalAmount } = req.body;
+
+      if (!customerName || !customerPhone || !customerAddress || !items || !totalAmount) {
+        return res.status(400).json({ 
+          message: 'Missing required fields' 
+        });
       }
-
-      if (!mongoose.Types.ObjectId.isValid(orderId)) {
-        return res.status(400).json({ message: 'Invalid order ID' });
-      }
-
-      const order = await Order.findById(orderId)
-        .populate('items.product', 'name images');
-
-      if (!order) {
-        return res.status(404).json({ message: 'Order not found' });
-      }
-
-      return res.json(order);
-    }
-
-    // CREATE ORDER
-    if (req.method === 'POST' && !orderId) {
-      const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;
 
       const order = new Order({
         customerName,
         customerPhone,
-        alternatePhone,
         customerAddress,
         items,
-        totalAmount: parseFloat(totalAmount),
+        totalAmount,
         status: 'pending'
       });
 
@@ -167,58 +127,77 @@ const handler = async (req, res) => {
       return res.status(201).json(order);
     }
 
-    // UPDATE ORDER STATUS
-    if (req.method === 'PUT' && isStatusUpdate) {
+    // Update order status
+    if (statusMatch && req.method === 'PUT') {
       const auth = authenticateAdmin(req);
       if (!auth.isValid) {
         return res.status(401).json({ message: auth.error });
       }
 
-      if (!mongoose.Types.ObjectId.isValid(orderId)) {
-        return res.status(400).json({ message: 'Invalid order ID' });
+      const orderId = statusMatch[1];
+      const { status } = req.body;
+
+      if (!status || !['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+        return res.status(400).json({ message: 'Invalid status value' });
       }
 
-      const { status } = req.body;
-      const order = await Order.findById(orderId);
+      const order = await Order.findByIdAndUpdate(
+        orderId,
+        { status },
+        { new: true }
+      ).populate('items.product', 'name images');
 
       if (!order) {
         return res.status(404).json({ message: 'Order not found' });
       }
-
-      order.status = status;
-      await order.save();
 
       return res.json(order);
     }
 
-    // DELETE ORDER
-    if (req.method === 'DELETE' && orderId) {
+    // Delete order
+    if (deleteMatch && req.method === 'DELETE') {
       const auth = authenticateAdmin(req);
       if (!auth.isValid) {
         return res.status(401).json({ message: auth.error });
       }
 
-      if (!mongoose.Types.ObjectId.isValid(orderId)) {
-        return res.status(400).json({ message: 'Invalid order ID' });
-      }
+      const orderId = deleteMatch[1];
+      const order = await Order.findByIdAndDelete(orderId);
 
-      const order = await Order.findById(orderId);
       if (!order) {
         return res.status(404).json({ message: 'Order not found' });
       }
 
-      await Order.findByIdAndDelete(orderId);
       return res.json({ message: 'Order deleted successfully' });
     }
 
-    return res.status(405).json({ message: 'Method not allowed' });
+    // Cleanup invalid orders
+    if (isCleanup && req.method === 'DELETE') {
+      const auth = authenticateAdmin(req);
+      if (!auth.isValid) {
+        return res.status(401).json({ message: auth.error });
+      }
+
+      const orders = await Order.find();
+      let deletedCount = 0;
+
+      for (const order of orders) {
+        if (!mongoose.Types.ObjectId.isValid(order._id.toString())) {
+          await Order.findByIdAndDelete(order._id);
+          deletedCount++;
+        }
+      }
+
+      return res.json({ 
+        message: 'Cleanup completed', 
+        deletedCount 
+      });
+    }
+
+    return res.status(404).json({ message: 'Endpoint not found' });
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ 
-      message: 'Server error', 
-      error: error.message,
-      type: error.name
-    });
+    console.error('Error handling request:', error);
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
 
