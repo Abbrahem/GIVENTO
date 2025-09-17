@@ -148,33 +148,41 @@ const connectDB = async () => {
 
 // Authentication middleware for Vercel
 const authenticateAdmin = (req) => {
-  console.log('🔐 Authenticating admin...');
-  console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
-  console.log('🔑 JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
-  
-  // Log all headers for debugging
-  console.log('📋 All headers:', JSON.stringify(req.headers, null, 2));
-  
-  const authHeader = req.headers.authorization;
-  console.log('📋 Auth header:', authHeader ? authHeader.substring(0, 20) + '...' : 'Missing');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('❌ No valid auth header');
-    return { isValid: false, error: 'No token provided' };
-  }
-  
-  const token = authHeader.split(' ')[1];
-  console.log('🎫 Token length:', token ? token.length : 0);
-  
   try {
+    console.log('🔐 Authenticating admin...');
+    console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('🔑 JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
+    
+    // Log all headers for debugging (but limit size)
+    const headersToLog = { ...req.headers };
+    if (headersToLog.authorization) {
+      headersToLog.authorization = headersToLog.authorization.substring(0, 20) + '...';
+    }
+    console.log('📋 Headers:', JSON.stringify(headersToLog, null, 2));
+    
+    const authHeader = req.headers.authorization;
+    console.log('📋 Auth header exists:', !!authHeader);
+    console.log('📋 Auth header starts with Bearer:', authHeader ? authHeader.startsWith('Bearer ') : false);
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ No valid auth header');
+      return { isValid: false, error: 'No token provided' };
+    }
+    
+    const token = authHeader.split(' ')[1];
+    console.log('🎫 Token length:', token ? token.length : 0);
+    console.log('🎫 Token first 10 chars:', token ? token.substring(0, 10) + '...' : 'None');
+    
     if (!process.env.JWT_SECRET) {
       console.log('❌ JWT_SECRET is missing from environment');
       return { isValid: false, error: 'Server configuration error' };
     }
     
+    console.log('🔐 Attempting to verify token...');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('✅ Token decoded successfully');
-    console.log('👤 User:', decoded.user ? decoded.user.email : 'No user in token');
+    console.log('👤 User exists in token:', !!decoded.user);
+    console.log('👤 User email:', decoded.user ? decoded.user.email : 'No user in token');
     console.log('🔒 Is Admin:', decoded.user ? decoded.user.isAdmin : 'No user data');
     
     if (!decoded.user || !decoded.user.isAdmin) {
@@ -185,7 +193,10 @@ const authenticateAdmin = (req) => {
     console.log('✅ Authentication successful');
     return { isValid: true, user: decoded.user };
   } catch (error) {
-    console.log('❌ Token verification failed:', error.message);
+    console.error('❌ Authentication error:', error.message);
+    console.error('❌ Authentication error type:', error.name);
+    console.error('❌ Authentication error stack:', error.stack);
+    
     if (error.name === 'TokenExpiredError') {
       return { isValid: false, error: 'Token expired', code: 'TOKEN_EXPIRED' };
     } else if (error.name === 'JsonWebTokenError') {
@@ -531,40 +542,91 @@ const handler = async (req, res) => {
       if (req.method === 'GET') {
         console.log('🔍 Getting orders - starting process');
         
-        // Check authentication first
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          console.log('❌ Authentication failed:', auth.error);
-          return res.status(401).json({ 
-            message: auth.error, 
-            code: auth.code || 'AUTH_FAILED',
-            requiresLogin: true 
+        try {
+          // Check authentication first
+          console.log('🔐 Checking authentication...');
+          const auth = authenticateAdmin(req);
+          if (!auth.isValid) {
+            console.log('❌ Authentication failed:', auth.error);
+            return res.status(401).json({ 
+              message: auth.error, 
+              code: auth.code || 'AUTH_FAILED',
+              requiresLogin: true 
+            });
+          }
+          
+          console.log('✅ Authentication successful for user:', auth.user.email);
+          
+          // Try to get orders from database
+          console.log('📊 Attempting to fetch orders from database...');
+          const orders = await Order.find().sort({ createdAt: -1 }).limit(50);
+          console.log('📊 Found orders count:', orders.length);
+          
+          // Populate product details if orders exist
+          if (orders.length > 0) {
+            console.log('📊 Populating product details...');
+            await Order.populate(orders, { path: 'items.product', select: 'name images' });
+          }
+          
+          console.log('✅ Orders retrieved successfully');
+          return res.json(orders);
+          
+        } catch (error) {
+          console.error('❌ Error in orders GET endpoint:', error);
+          console.error('❌ Error stack:', error.stack);
+          return res.status(500).json({ 
+            message: 'Failed to retrieve orders', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
           });
         }
-        
-        console.log('✅ Authentication successful');
-        
-        // Return empty array for now to test if the endpoint works
-        console.log('📊 Returning empty orders array for testing');
-        return res.json([]);
       }
       if (req.method === 'POST') {
-        const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;
-        const order = new Order({
-          customerName,
-          customerPhone,
-          alternatePhone,
-          customerAddress,
-          items,
-          totalAmount: parseFloat(totalAmount),
-          status: 'pending'
-        });
-        await order.save();
-        
-        // Populate the order with product details
-        await order.populate('items.product', 'name images');
-        
-        return res.status(201).json(order);
+        try {
+          console.log('📝 Creating new order...');
+          const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;
+          
+          // Validate required fields
+          if (!customerName || !customerPhone || !customerAddress || !items || !totalAmount) {
+            return res.status(400).json({ 
+              message: 'Missing required fields: customerName, customerPhone, customerAddress, items, totalAmount' 
+            });
+          }
+          
+          if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: 'Items must be a non-empty array' });
+          }
+          
+          const order = new Order({
+            customerName,
+            customerPhone,
+            alternatePhone,
+            customerAddress,
+            items,
+            totalAmount: parseFloat(totalAmount),
+            status: 'pending'
+          });
+          
+          console.log('💾 Saving order to database...');
+          await order.save();
+          console.log('✅ Order saved with ID:', order._id);
+          
+          // Populate the order with product details
+          console.log('📊 Populating product details...');
+          await order.populate('items.product', 'name images');
+          
+          console.log('✅ Order created successfully');
+          return res.status(201).json(order);
+          
+        } catch (error) {
+          console.error('❌ Error creating order:', error);
+          console.error('❌ Error stack:', error.stack);
+          return res.status(500).json({ 
+            message: 'Failed to create order', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          });
+        }
       }
     }
 
@@ -823,17 +885,17 @@ const handler = async (req, res) => {
       if (req.method === 'GET') {
         console.log('🧪 Simple orders test...');
         
-        // Check authentication
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          return res.status(401).json({ 
-            message: auth.error, 
-            code: auth.code || 'AUTH_FAILED',
-            requiresLogin: true 
-          });
-        }
-        
         try {
+          // Check authentication
+          const auth = authenticateAdmin(req);
+          if (!auth.isValid) {
+            return res.status(401).json({ 
+              message: auth.error, 
+              code: auth.code || 'AUTH_FAILED',
+              requiresLogin: true 
+            });
+          }
+          
           // Just count orders
           const count = await Order.countDocuments();
           console.log('📊 Orders count:', count);
@@ -841,13 +903,51 @@ const handler = async (req, res) => {
           return res.json({
             message: 'Simple orders test successful',
             ordersCount: count,
+            user: auth.user.email,
             timestamp: new Date().toISOString()
           });
         } catch (error) {
           console.error('❌ Simple orders test error:', error);
           return res.status(500).json({
             message: 'Simple orders test failed',
-            error: error.message
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          });
+        }
+      }
+    }
+    
+    // Auth test endpoint (no database involved)
+    if (pathname === '/api/test-auth') {
+      if (req.method === 'GET') {
+        console.log('🧪 Auth test...');
+        
+        try {
+          // Check authentication only
+          const auth = authenticateAdmin(req);
+          if (!auth.isValid) {
+            return res.status(401).json({ 
+              message: auth.error, 
+              code: auth.code || 'AUTH_FAILED',
+              requiresLogin: true 
+            });
+          }
+          
+          return res.json({
+            message: 'Authentication test successful',
+            user: {
+              email: auth.user.email,
+              name: auth.user.name,
+              isAdmin: auth.user.isAdmin
+            },
+            timestamp: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('❌ Auth test error:', error);
+          return res.status(500).json({
+            message: 'Auth test failed',
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
           });
         }
       }
