@@ -205,7 +205,11 @@ const handler = async (req, res) => {
   }
 
   try {
+    console.log('🔌 Connecting to MongoDB...');
     await connectDB();
+    console.log('✅ MongoDB connected successfully');
+    console.log('🔍 MongoDB connection state:', mongoose.connection.readyState);
+    console.log('🔍 MongoDB connection name:', mongoose.connection.name);
     
     // Parse JSON body for POST/PUT requests
     if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type']?.includes('application/json')) {
@@ -500,10 +504,15 @@ const handler = async (req, res) => {
     // Orders endpoints (temporary - until separate files are deployed)
     if (pathname === '/api/orders') {
       if (req.method === 'GET') {
-        console.log('🔍 Getting orders - checking authentication');
+        console.log('🔍 Getting orders - starting process');
+        console.log('🔍 MongoDB connection state:', mongoose.connection.readyState);
+        console.log('🔍 Request headers:', JSON.stringify(req.headers, null, 2));
         
         // Check authentication
+        console.log('🔐 Starting authentication check...');
         const auth = authenticateAdmin(req);
+        console.log('🔐 Authentication result:', auth);
+        
         if (!auth.isValid) {
           console.log('❌ Authentication failed:', auth.error);
           // Return specific error for token expiration
@@ -514,23 +523,38 @@ const handler = async (req, res) => {
           });
         }
         
+        console.log('✅ Authentication successful, fetching orders...');
+        
         try {
+          console.log('📊 Querying orders from database...');
           const orders = await Order.find()
             .populate('items.product', 'name images')
             .sort({ createdAt: -1 });
           
+          console.log('📊 Raw orders count:', orders.length);
+          console.log('📊 Sample order IDs:', orders.slice(0, 3).map(o => o._id));
+          
           // Filter out orders with invalid IDs
           const validOrders = orders.filter(order => {
-            return mongoose.Types.ObjectId.isValid(order._id);
+            const isValid = mongoose.Types.ObjectId.isValid(order._id);
+            if (!isValid) {
+              console.log('❌ Invalid order ID found:', order._id);
+            }
+            return isValid;
           });
           
-          console.log('✅ Found orders:', validOrders.length);
+          console.log('✅ Valid orders count:', validOrders.length);
+          console.log('✅ Returning orders to client');
           return res.json(validOrders);
         } catch (error) {
           console.error('❌ Error fetching orders:', error);
+          console.error('❌ Error stack:', error.stack);
+          console.error('❌ Error name:', error.name);
+          console.error('❌ Error message:', error.message);
           return res.status(500).json({ 
             message: 'Error fetching orders', 
-            error: error.message 
+            error: error.message,
+            stack: error.stack
           });
         }
       }
@@ -757,13 +781,41 @@ const handler = async (req, res) => {
 
     // Health check
     if (pathname === '/api/health') {
-      return res.json({ 
-        status: 'OK', 
-        message: 'API is running',
-        mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
-      });
+      try {
+        // Test database connection
+        const dbTest = await mongoose.connection.db.admin().ping();
+        
+        return res.json({ 
+          status: 'OK', 
+          message: 'API is running',
+          mongodb: {
+            state: mongoose.connection.readyState,
+            stateText: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+            name: mongoose.connection.name,
+            host: mongoose.connection.host,
+            ping: dbTest ? 'Success' : 'Failed'
+          },
+          environment: {
+            nodeEnv: process.env.NODE_ENV || 'development',
+            hasMongoUri: !!process.env.MONGODB_URI,
+            hasJwtSecret: !!process.env.JWT_SECRET,
+            mongoUriLength: process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0
+          },
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('❌ Health check error:', error);
+        return res.status(500).json({
+          status: 'ERROR',
+          message: 'Health check failed',
+          error: error.message,
+          mongodb: {
+            state: mongoose.connection.readyState,
+            stateText: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
     }
 
     // Test endpoint to verify routing
@@ -875,8 +927,19 @@ const handler = async (req, res) => {
       ]
     });
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('❌ API Error:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Request URL:', req.url);
+    console.error('❌ Request method:', req.method);
+    return res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message,
+      stack: error.stack,
+      url: req.url,
+      method: req.method
+    });
   }
 };
 

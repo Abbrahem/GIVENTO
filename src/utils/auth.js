@@ -15,18 +15,18 @@ export const isTokenExpired = (token) => {
   }
 };
 
-// Get valid token or redirect to login
-export const getValidToken = () => {
+// Get valid token (without showing alerts)
+export const getValidToken = (showAlerts = false) => {
   const token = localStorage.getItem('adminToken');
   
   if (!token) {
-    showLoginRequired();
+    if (showAlerts) showLoginRequired();
     return null;
   }
   
   if (isTokenExpired(token)) {
     localStorage.removeItem('adminToken');
-    showTokenExpired();
+    if (showAlerts) showTokenExpired();
     return null;
   }
   
@@ -87,7 +87,7 @@ export const handleApiResponse = async (response) => {
 
 // Make authenticated API request
 export const makeAuthenticatedRequest = async (url, options = {}) => {
-  const token = getValidToken();
+  const token = getValidToken(true); // Show alerts when making requests
   
   if (!token) {
     return { success: false, requiresLogin: true };
