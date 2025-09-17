@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Order = require('./models/Order');
+const Order = mongoose.models.Order || require('./models/Order');
 const jwt = require('jsonwebtoken');
 
 // Database connection with error handling

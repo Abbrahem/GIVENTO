@@ -25,4 +25,11 @@ const OrderSchema = new mongoose.Schema({
   strict: true 
 });
 
-module.exports = mongoose.models.Order || mongoose.model('Order', OrderSchema);
+let Order;
+try {
+  Order = mongoose.model('Order');
+} catch (error) {
+  Order = mongoose.model('Order', OrderSchema);
+}
+
+module.exports = Order;
