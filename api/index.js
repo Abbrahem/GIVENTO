@@ -163,10 +163,13 @@ module.exports = async (req, res) => {
 
   try {
     await connectDB();
-    const { pathname } = parse(req.url, true);
+    const { pathname, query } = parse(req.url, true);
     console.log('🚀 API Request:', req.method, pathname);
     console.log('🔍 Request URL:', req.url);
+    console.log('🔍 Parsed pathname:', pathname);
+    console.log('🔍 Query params:', query);
     console.log('📋 Request headers:', req.headers);
+    console.log('🌐 Environment:', process.env.NODE_ENV || 'development');
 
     // Products endpoints
     if (pathname === '/api/products') {
