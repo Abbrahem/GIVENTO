@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const auth = require('../middleware/auth');
 
@@ -72,6 +73,11 @@ router.put('/:id/status', auth, async (req, res) => {
   try {
     const { status } = req.body;
     
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid order ID format' });
+    }
+    
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
@@ -82,8 +88,8 @@ router.put('/:id/status', auth, async (req, res) => {
 
     res.json(order);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error updating order status:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -92,6 +98,11 @@ router.put('/:id/status', auth, async (req, res) => {
 // @access  Private (Admin only)
 router.delete('/:id', auth, async (req, res) => {
   try {
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid order ID format' });
+    }
+    
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
@@ -100,8 +111,8 @@ router.delete('/:id', auth, async (req, res) => {
     await Order.findByIdAndDelete(req.params.id);
     res.json({ message: 'Order deleted successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error deleting order:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

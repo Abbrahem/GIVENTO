@@ -94,12 +94,12 @@ const Home = () => {
 
       {/* Categories Section */}
       <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4 font-cairo">Shop by Category</h2>
             <p className="text-gray-600 text-lg font-cairo">Discover our wide range of products</p>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 max-w-6xl mx-auto">
             {categories.map((category, index) => (
               <div key={index} className="group relative rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden h-64 sm:h-72 lg:h-80">
                 {/* Full Background Image */}

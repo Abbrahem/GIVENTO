@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../../config/api';
+import { getImageUrl } from '../../utils/imageUtils';
 
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -223,7 +224,7 @@ const ManageOrders = () => {
                         {/* Product Image */}
                         <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-300 mx-auto md:mx-0">
                           <img
-                            src={item.image && item.image !== 'undefined' && item.image !== null && item.image !== '' ? item.image : '/placeholder-image.jpg'}
+                            src={item.image && item.image !== 'undefined' && item.image !== null && item.image !== '' ? getImageUrl(item.image) : '/placeholder-image.jpg'}
                             alt={item.productName}
                             className="w-full h-full object-cover"
                             onError={(e) => {
