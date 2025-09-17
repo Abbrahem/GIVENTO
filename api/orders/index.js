@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
+const Order = require('../models/Order');
+const jwt = require('jsonwebtoken');
 
-// Order Schema
+// Verify MongoDB Connection
 const OrderSchema = new mongoose.Schema({
   customerName: { type: String, required: true },
   customerPhone: { type: String, required: true },
@@ -91,6 +93,32 @@ const authenticateAdmin = (req) => {
   } catch (error) {
     console.log('❌ Token verification failed:', error.message);
     return { isValid: false, error: 'Invalid token' };
+  }
+};
+
+const connectDB = async () => {
+  try {
+    console.log('🔍 Checking MongoDB connection...');
+    
+    if (mongoose.connection.readyState === 1) {
+      console.log('✅ Already connected to MongoDB');
+      return;
+    }
+
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000
+    });
+
+    console.log('✅ Successfully connected to MongoDB');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    throw error;
   }
 };
 
