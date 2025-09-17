@@ -152,8 +152,11 @@ const authenticateAdmin = (req) => {
   console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
   console.log('🔑 JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
   
+  // Log all headers for debugging
+  console.log('📋 All headers:', JSON.stringify(req.headers, null, 2));
+  
   const authHeader = req.headers.authorization;
-  console.log('📋 Auth header:', authHeader ? 'Present' : 'Missing');
+  console.log('📋 Auth header:', authHeader ? authHeader.substring(0, 20) + '...' : 'Missing');
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     console.log('❌ No valid auth header');
@@ -527,17 +530,11 @@ const handler = async (req, res) => {
     if (pathname === '/api/orders') {
       if (req.method === 'GET') {
         console.log('🔍 Getting orders - starting process');
-        console.log('🔍 MongoDB connection state:', mongoose.connection.readyState);
-        console.log('🔍 Request headers:', JSON.stringify(req.headers, null, 2));
         
-        // Check authentication
-        console.log('🔐 Starting authentication check...');
+        // Check authentication first
         const auth = authenticateAdmin(req);
-        console.log('🔐 Authentication result:', auth);
-        
         if (!auth.isValid) {
           console.log('❌ Authentication failed:', auth.error);
-          // Return specific error for token expiration
           return res.status(401).json({ 
             message: auth.error, 
             code: auth.code || 'AUTH_FAILED',
@@ -545,44 +542,11 @@ const handler = async (req, res) => {
           });
         }
         
-        console.log('✅ Authentication successful, fetching orders...');
+        console.log('✅ Authentication successful');
         
-        try {
-          console.log('📊 Querying orders from database (WITHOUT POPULATE)...');
-          
-          // Simple query without populate to avoid issues
-          const orders = await Order.find()
-            .sort({ createdAt: -1 })
-            .limit(50)
-            .lean(); // Use lean for better performance
-          
-          console.log('✅ Orders fetched successfully:', orders.length);
-          
-          console.log('📊 Raw orders count:', orders.length);
-          
-          // Simple response without complex processing
-          const validOrders = orders.filter(order => {
-            const isValid = mongoose.Types.ObjectId.isValid(order._id);
-            if (!isValid) {
-              console.log('❌ Invalid order ID found:', order._id);
-            }
-            return isValid;
-          });
-          
-          console.log('✅ Valid orders count:', validOrders.length);
-          console.log('✅ Returning orders to client');
-          return res.json(validOrders);
-        } catch (error) {
-          console.error('❌ Error fetching orders:', error);
-          console.error('❌ Error stack:', error.stack);
-          console.error('❌ Error name:', error.name);
-          console.error('❌ Error message:', error.message);
-          return res.status(500).json({ 
-            message: 'Error fetching orders', 
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-          });
-        }
+        // Return empty array for now to test if the endpoint works
+        console.log('📊 Returning empty orders array for testing');
+        return res.json([]);
       }
       if (req.method === 'POST') {
         const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;

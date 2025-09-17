@@ -21,6 +21,10 @@ const ManageOrders = () => {
       // Debug authentication
       debugAuth();
       
+      // Get token manually as fallback
+      const token = getValidToken();
+      console.log('🎫 Manual token check:', !!token);
+      
       const response = await api.getOrders();
       const data = response.data;
       
