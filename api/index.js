@@ -624,9 +624,15 @@ const handler = async (req, res) => {
     }
     
     console.log('🔍 Available routes checked:');
-    console.log('  - /api/products/* (handled by separate files)');
+    console.log('  - /api/products (GET, POST)');
+    console.log('  - /api/products/latest (GET)');
+    console.log('  - /api/products/:id (GET, PUT, DELETE)');
+    console.log('  - /api/products/:id/toggle (PUT)');
     console.log('  - /api/auth/login (POST)');
-    console.log('  - /api/orders/* (handled by separate files)');
+    console.log('  - /api/orders (GET, POST)');
+    console.log('  - /api/orders/cleanup (DELETE)');
+    console.log('  - /api/orders/:id (GET, PUT, DELETE)');
+    console.log('  - /api/orders/:id/status (PUT)');
     console.log('  - /api/categories (GET)');
     console.log('  - /api/categories/:slug/products (GET)');
     console.log('  - /api/health (GET)');
@@ -634,9 +640,21 @@ const handler = async (req, res) => {
       message: `Route not found: ${pathname}`,
       method: req.method,
       availableRoutes: [
-        'Products endpoints handled by separate files',
+        'GET /api/products',
+        'POST /api/products',
+        'GET /api/products/latest',
+        'GET /api/products/:id',
+        'PUT /api/products/:id',
+        'DELETE /api/products/:id',
+        'PUT /api/products/:id/toggle',
         'POST /api/auth/login',
-        'Orders endpoints handled by separate files',
+        'GET /api/orders',
+        'POST /api/orders',
+        'DELETE /api/orders/cleanup',
+        'GET /api/orders/:id',
+        'PUT /api/orders/:id',
+        'DELETE /api/orders/:id',
+        'PUT /api/orders/:id/status',
         'GET /api/categories',
         'GET /api/categories/:slug/products',
         'GET /api/health'
