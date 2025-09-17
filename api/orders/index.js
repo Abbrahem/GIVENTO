@@ -103,22 +103,35 @@ const handler = async (req, res) => {
     await connectDB();
 
     if (req.method === 'GET') {
-      // Get all orders - Admin only
-      const auth = authenticateAdmin(req);
-      if (!auth.isValid) {
-        return res.status(401).json({ message: auth.error });
-      }
-      
-      const orders = await Order.find()
-        .populate('items.product', 'name images')
-        .sort({ createdAt: -1 });
-      
-      // Filter out orders with invalid IDs
-      const validOrders = orders.filter(order => {
-        return mongoose.Types.ObjectId.isValid(order._id);
-      });
-      
-      return res.json(validOrders);
+      try {
+        console.log('🔍 Processing GET /api/orders request');
+        
+        // Get all orders - Admin only
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          console.log('❌ Authentication failed:', auth.error);
+          return res.status(401).json({ message: auth.error });
+        }
+        console.log('✅ Authentication successful');
+        
+        console.log('📊 Attempting to fetch orders from database...');
+        const orders = await Order.find()
+          .populate('items.product', 'name images')
+          .sort({ createdAt: -1 });
+        
+        console.log(`📦 Found ${orders.length} orders`);
+        
+        // Filter out orders with invalid IDs
+        const validOrders = orders.filter(order => {
+          const isValid = mongoose.Types.ObjectId.isValid(order._id);
+          if (!isValid) {
+            console.log('⚠️ Found invalid order ID:', order._id);
+          }
+          return isValid;
+        });
+        
+        console.log(`✅ Returning ${validOrders.length} valid orders`);
+        return res.json(validOrders);
     }
 
     if (req.method === 'POST') {
@@ -145,15 +158,27 @@ const handler = async (req, res) => {
 
     return res.status(405).json({ message: 'Method not allowed' });
   } catch (error) {
-    console.error('API Error details:', {
+    } catch (error) {
+    console.error('❌ API Error:', {
       message: error.message,
+      name: error.name,
       stack: error.stack,
-      name: error.name
+      code: error.code
     });
-    return res.status(500).json({ 
-      message: 'Server error', 
+    
+    // Check for specific error types
+    if (error.name === 'MongooseError' || error.name === 'MongoError') {
+      return res.status(500).json({
+        message: 'Database error',
+        error: error.message,
+        code: 'DB_ERROR'
+      });
+    }
+    
+    return res.status(500).json({
+      message: 'Server error',
       error: error.message,
-      type: error.name
+      code: error.name
     });
   }
 };
