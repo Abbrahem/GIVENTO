@@ -168,8 +168,12 @@ const handler = async (req, res) => {
     console.log('🔍 Request URL:', req.url);
     console.log('🔍 Parsed pathname:', pathname);
     console.log('🔍 Query params:', query);
-    console.log('📋 Request headers:', req.headers);
     console.log('🌐 Environment:', process.env.NODE_ENV || 'development');
+    
+    // Test all regex patterns
+    console.log('🧪 Testing regex patterns for:', pathname);
+    console.log('  - /^\/api\/products\/[a-fA-F0-9]{24}$/ matches:', /^\/api\/products\/[a-fA-F0-9]{24}$/.test(pathname));
+    console.log('  - /^\/api\/products\/[a-zA-Z0-9]{20,30}$/ matches:', /^\/api\/products\/[a-zA-Z0-9]{20,30}$/.test(pathname));
 
     // Products endpoints
     if (pathname === '/api/products') {
@@ -215,8 +219,8 @@ const handler = async (req, res) => {
       }
     }
 
-    // Product by ID endpoint - Match MongoDB ObjectId (24 hex characters) or any valid ID
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}$/) || pathname.match(/^\/api\/products\/[a-zA-Z0-9]{20,30}$/)) {
+    // Product by ID endpoint - Match any product ID pattern
+    if (pathname.startsWith('/api/products/') && pathname.split('/').length === 4 && pathname !== '/api/products/latest') {
       const productId = pathname.split('/').pop();
       console.log('🆔 Extracted Product ID:', productId);
       console.log('📏 Product ID length:', productId.length);
@@ -280,8 +284,8 @@ const handler = async (req, res) => {
       }
     }
 
-    // Product toggle availability endpoint - Match MongoDB ObjectId (24 hex characters) or any valid ID
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/) || pathname.match(/^\/api\/products\/[a-zA-Z0-9]{20,30}\/toggle$/)) {
+    // Product toggle availability endpoint - Match any product ID with /toggle
+    if (pathname.startsWith('/api/products/') && pathname.endsWith('/toggle') && pathname.split('/').length === 5) {
       const productId = pathname.split('/')[3];
       console.log('🔄 Extracted Product ID for toggle:', productId);
       console.log('📏 Product ID length for toggle:', productId.length);
@@ -476,6 +480,17 @@ const handler = async (req, res) => {
         message: 'API routing is working!',
         pathname,
         method: req.method,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Test ObjectId validation
+    if (pathname.startsWith('/api/test-objectid/')) {
+      const testId = pathname.split('/').pop();
+      return res.json({
+        testId,
+        isValid: mongoose.Types.ObjectId.isValid(testId),
+        length: testId.length,
         timestamp: new Date().toISOString()
       });
     }
