@@ -39,6 +39,11 @@ const connectDB = async () => {
   }
   
   try {
+    console.log('Attempting MongoDB connection...');
+    if (!process.env.MONGODB_URI) {
+      console.error('MONGODB_URI is not defined!');
+      throw new Error('MongoDB connection string is missing');
+    }
     const connection = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -140,8 +145,16 @@ const handler = async (req, res) => {
 
     return res.status(405).json({ message: 'Method not allowed' });
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('API Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    return res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message,
+      type: error.name
+    });
   }
 };
 
