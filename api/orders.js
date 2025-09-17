@@ -1,6 +1,26 @@
 const mongoose = require('mongoose');
-const Order = require('../backend/models/Order');
+const Order = require('./models/Order');
 const jwt = require('jsonwebtoken');
+
+// Database connection with error handling
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    console.log('✅ MongoDB already connected');
+    return;
+  }
+
+  try {
+    console.log('🔌 Connecting to MongoDB...');
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('✅ MongoDB connected successfully');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    throw error;
+  }
+};
 
 const authenticateAdmin = (req) => {
   try {
@@ -61,9 +81,13 @@ const handler = async (req, res) => {
     return res.status(200).end();
   }
 
-  // Get path from URL
-  const path = req.url;
-  console.log('🔍 Request path:', path);
+  try {
+    // Ensure database is connected
+    await connectDB();
+
+    // Get path from URL
+    const path = req.url;
+    console.log('🔍 Request path:', path);
 
   // Parse body for POST/PUT requests
   if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type']?.includes('application/json')) {
