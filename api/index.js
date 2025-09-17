@@ -150,7 +150,7 @@ const authenticateAdmin = (req) => {
   }
 };
 
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
   // Enable CORS for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -523,4 +523,6 @@ module.exports = async (req, res) => {
     console.error('API Error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
-}
+};
+
+module.exports = handler;
