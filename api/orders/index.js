@@ -53,20 +53,33 @@ const connectDB = async () => {
 
 // Authentication middleware
 const authenticateAdmin = (req) => {
+  console.log('🔐 Authentication check started');
+  console.log('🔍 Headers:', req.headers);
+  console.log('🔍 JWT_SECRET exists:', !!process.env.JWT_SECRET);
+  
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ No valid authorization header');
     return { isValid: false, error: 'No token provided' };
   }
   
   const token = authHeader.split(' ')[1];
+  console.log('🎫 Token received:', token ? 'Token exists' : 'No token');
+  
   try {
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ Token decoded:', decoded);
+    
     if (!decoded.user || !decoded.user.isAdmin) {
+      console.log('❌ User is not admin:', decoded.user);
       return { isValid: false, error: 'Admin access required' };
     }
+    
+    console.log('✅ Admin authentication successful');
     return { isValid: true, user: decoded.user };
   } catch (error) {
+    console.log('❌ Token verification failed:', error.message);
     return { isValid: false, error: 'Invalid token' };
   }
 };

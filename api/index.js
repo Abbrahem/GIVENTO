@@ -343,179 +343,8 @@ const handler = async (req, res) => {
       }
     }
 
-    // Orders endpoints
-    if (pathname === '/api/orders') {
-      if (req.method === 'GET') {
-        // Authenticate admin for getting orders
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          return res.status(401).json({ message: auth.error });
-        }
-        
-        const orders = await Order.find()
-          .populate('items.product', 'name images')
-          .sort({ createdAt: -1 });
-        
-        // Filter out orders with invalid IDs
-        const validOrders = orders.filter(order => {
-          return mongoose.Types.ObjectId.isValid(order._id);
-        });
-        
-        return res.json(validOrders);
-      }
-      if (req.method === 'POST') {
-        const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;
-        const order = new Order({
-          customerName,
-          customerPhone,
-          alternatePhone,
-          customerAddress,
-          items,
-          totalAmount: parseFloat(totalAmount),
-          status: 'pending'
-        });
-        await order.save();
-        
-        // Populate the order with product details
-        await order.populate('items.product', 'name images');
-        
-        return res.status(201).json(order);
-      }
-    }
-
-    // Orders cleanup endpoint
-    if (pathname === '/api/orders/cleanup') {
-      if (req.method === 'DELETE') {
-        // Authenticate admin for cleanup
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          return res.status(401).json({ message: auth.error });
-        }
-        
-        try {
-          // Find all orders
-          const allOrders = await Order.find();
-          
-          let deletedCount = 0;
-          const invalidOrders = [];
-          
-          for (const order of allOrders) {
-            // Check if the order ID is invalid
-            if (!mongoose.Types.ObjectId.isValid(order._id)) {
-              invalidOrders.push(order._id);
-              try {
-                await Order.deleteOne({ _id: order._id });
-                deletedCount++;
-              } catch (deleteError) {
-                console.error('Error deleting invalid order:', deleteError);
-              }
-            }
-          }
-          
-          return res.json({ 
-            message: `Cleanup completed. Deleted ${deletedCount} invalid orders.`,
-            deletedCount,
-            invalidOrders
-          });
-        } catch (error) {
-          console.error('Error during cleanup:', error);
-          return res.status(500).json({ message: 'Server error during cleanup' });
-        }
-      }
-    }
-
-    // Order by ID endpoint
-    if (pathname.match(/^\/api\/orders\/[a-fA-F0-9]{24}$/)) {
-      const orderId = pathname.split('/').pop();
-      
-      // Validate ObjectId
-      if (!mongoose.Types.ObjectId.isValid(orderId)) {
-        return res.status(400).json({ message: 'Invalid order ID format' });
-      }
-      
-      if (req.method === 'GET') {
-        // Authenticate admin for getting order
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          return res.status(401).json({ message: auth.error });
-        }
-        
-        const order = await Order.findById(orderId).populate('items.product', 'name images');
-        if (!order) {
-          return res.status(404).json({ message: 'Order not found' });
-        }
-        return res.json(order);
-      }
-      if (req.method === 'PUT') {
-        // Authenticate admin for updating order
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          return res.status(401).json({ message: auth.error });
-        }
-        
-        const updates = req.body;
-        const order = await Order.findByIdAndUpdate(orderId, updates, { new: true });
-        if (!order) {
-          return res.status(404).json({ message: 'Order not found' });
-        }
-        return res.json(order);
-      }
-      if (req.method === 'DELETE') {
-        // Authenticate admin for deleting order
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          return res.status(401).json({ message: auth.error });
-        }
-        
-        try {
-          const order = await Order.findById(orderId);
-          if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
-          }
-
-          await Order.findByIdAndDelete(orderId);
-          return res.json({ message: 'Order deleted successfully' });
-        } catch (error) {
-          console.error('Error deleting order:', error);
-          return res.status(500).json({ message: 'Server error', error: error.message });
-        }
-      }
-    }
-
-    // Order status update endpoint
-    if (pathname.match(/^\/api\/orders\/[a-fA-F0-9]{24}\/status$/)) {
-      const orderId = pathname.split('/')[3];
-      
-      // Validate ObjectId
-      if (!mongoose.Types.ObjectId.isValid(orderId)) {
-        return res.status(400).json({ message: 'Invalid order ID format' });
-      }
-      
-      if (req.method === 'PUT') {
-        // Authenticate admin for updating order status
-        const auth = authenticateAdmin(req);
-        if (!auth.isValid) {
-          return res.status(401).json({ message: auth.error });
-        }
-        
-        try {
-          const { status } = req.body;
-          
-          const order = await Order.findById(orderId);
-          if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
-          }
-
-          order.status = status;
-          await order.save();
-
-          return res.json(order);
-        } catch (error) {
-          console.error('Error updating order status:', error);
-          return res.status(500).json({ message: 'Server error', error: error.message });
-        }
-      }
-    }
+    // Orders endpoints are now handled by separate files in /api/orders/
+    // This section has been removed to avoid conflicts
 
     // Categories endpoints
     if (pathname === '/api/categories') {
@@ -686,10 +515,7 @@ const handler = async (req, res) => {
     console.log('  - /api/products/:id (GET, PUT, DELETE)');
     console.log('  - /api/products/:id/toggle (PUT)');
     console.log('  - /api/auth/login (POST)');
-    console.log('  - /api/orders (GET, POST)');
-    console.log('  - /api/orders/cleanup (DELETE)');
-    console.log('  - /api/orders/:id (GET, PUT, DELETE)');
-    console.log('  - /api/orders/:id/status (PUT)');
+    console.log('  - /api/orders/* (handled by separate files)');
     console.log('  - /api/categories (GET)');
     console.log('  - /api/categories/:slug/products (GET)');
     console.log('  - /api/health (GET)');
@@ -705,13 +531,7 @@ const handler = async (req, res) => {
         'DELETE /api/products/:id',
         'PUT /api/products/:id/toggle',
         'POST /api/auth/login',
-        'GET /api/orders',
-        'POST /api/orders',
-        'DELETE /api/orders/cleanup',
-        'GET /api/orders/:id',
-        'PUT /api/orders/:id',
-        'DELETE /api/orders/:id',
-        'PUT /api/orders/:id/status',
+        'Orders endpoints handled by separate files',
         'GET /api/categories',
         'GET /api/categories/:slug/products',
         'GET /api/health'
