@@ -41,7 +41,10 @@ const connectDB = async () => {
 
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000
     });
 
     return mongoose.connection;
@@ -97,11 +100,30 @@ const handler = async (req, res) => {
         return res.status(401).json({ message: auth.error });
       }
 
+      console.log('📊 Fetching orders...');
       const orders = await Order.find()
+        .select('customerName customerPhone customerAddress items totalAmount status createdAt')
         .populate('items.product', 'name images')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean()
+        .exec();
+      console.log(`✅ Found ${orders.length} orders`);
 
-      return res.json(orders);
+      return res.json({
+        success: true,
+        count: orders.length,
+        orders: orders.map(order => ({
+          ...order,
+          items: order.items.map(item => ({
+            ...item,
+            product: item.product ? {
+              id: item.product._id,
+              name: item.product.name,
+              image: item.product.images?.[0]
+            } : null
+          }))
+        }))
+      });
     }
 
     // GET SINGLE ORDER
