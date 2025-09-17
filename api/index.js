@@ -372,6 +372,24 @@ const handler = async (req, res) => {
       if (req.method === 'POST') {
         const { email, password } = req.body;
         let user = await User.findOne({ email });
+        
+        // Auto-create admin user if it doesn't exist and trying to login with admin credentials
+        if (!user && email === 'admin@givento.com' && password === 'admin123') {
+          console.log('🔧 Auto-creating admin user...');
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash(password, salt);
+          
+          user = new User({
+            name: 'Admin',
+            email: 'admin@givento.com',
+            password: hashedPassword,
+            isAdmin: true
+          });
+          
+          await user.save();
+          console.log('✅ Admin user auto-created successfully');
+        }
+        
         if (!user) {
           return res.status(400).json({ message: 'Invalid credentials' });
         }
