@@ -14,11 +14,27 @@ const ManageProducts = () => {
 
   const fetchProducts = async () => {
     try {
+      console.log('🔍 Fetching products...');
       const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS));
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setProducts(data);
+      console.log('📦 Products data:', data);
+      console.log('📊 Products count:', data.length);
+      
+      setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to load products. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#b71c1c'
+      });
     } finally {
       setLoading(false);
     }
@@ -49,6 +65,7 @@ const ManageProducts = () => {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
       });
 
@@ -94,6 +111,7 @@ const ManageProducts = () => {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
       });
 

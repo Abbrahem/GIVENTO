@@ -126,19 +126,41 @@ const connectDB = async () => {
 
 // Authentication middleware for Vercel
 const authenticateAdmin = (req) => {
+  console.log('🔐 Authenticating admin...');
+  console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
+  console.log('🔑 JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
+  
   const authHeader = req.headers.authorization;
+  console.log('📋 Auth header:', authHeader ? 'Present' : 'Missing');
+  
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ No valid auth header');
     return { isValid: false, error: 'No token provided' };
   }
   
   const token = authHeader.split(' ')[1];
+  console.log('🎫 Token length:', token ? token.length : 0);
+  
   try {
+    if (!process.env.JWT_SECRET) {
+      console.log('❌ JWT_SECRET is missing from environment');
+      return { isValid: false, error: 'Server configuration error' };
+    }
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ Token decoded successfully');
+    console.log('👤 User:', decoded.user ? decoded.user.email : 'No user in token');
+    console.log('🔒 Is Admin:', decoded.user ? decoded.user.isAdmin : 'No user data');
+    
     if (!decoded.user || !decoded.user.isAdmin) {
+      console.log('❌ User is not admin');
       return { isValid: false, error: 'Admin access required' };
     }
+    
+    console.log('✅ Authentication successful');
     return { isValid: true, user: decoded.user };
   } catch (error) {
+    console.log('❌ Token verification failed:', error.message);
     return { isValid: false, error: 'Invalid token' };
   }
 };
@@ -176,7 +198,16 @@ const handler = async (req, res) => {
         return res.json(products);
       }
       if (req.method === 'POST') {
-        console.log('🔍 Creating product - removing auth temporarily');
+        console.log('🔍 Creating product - checking authentication');
+        
+        // Check authentication
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          console.log('❌ Authentication failed:', auth.error);
+          return res.status(401).json({ message: auth.error });
+        }
+        
+        console.log('✅ Authentication successful for user:', auth.user.email);
         
         const { name, description, originalPrice, salePrice, category, sizes, colors, images } = req.body;
         
@@ -227,7 +258,14 @@ const handler = async (req, res) => {
         }
       }
       if (req.method === 'PUT') {
-        console.log('🔍 Updating product - removing auth temporarily');
+        console.log('🔍 Updating product - checking authentication');
+        
+        // Check authentication
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          console.log('❌ Authentication failed:', auth.error);
+          return res.status(401).json({ message: auth.error });
+        }
         
         try {
           const updates = req.body;
@@ -242,7 +280,14 @@ const handler = async (req, res) => {
         }
       }
       if (req.method === 'DELETE') {
-        console.log('🔍 Deleting product - removing auth temporarily');
+        console.log('🔍 Deleting product - checking authentication');
+        
+        // Check authentication
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          console.log('❌ Authentication failed:', auth.error);
+          return res.status(401).json({ message: auth.error });
+        }
         
         try {
           const product = await Product.findByIdAndDelete(productId);
@@ -263,7 +308,14 @@ const handler = async (req, res) => {
       console.log('🔄 Toggle product:', productId);
       
       if (req.method === 'PUT') {
-        console.log('🔍 Toggling product - removing auth temporarily');
+        console.log('🔍 Toggling product - checking authentication');
+        
+        // Check authentication
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          console.log('❌ Authentication failed:', auth.error);
+          return res.status(401).json({ message: auth.error });
+        }
         
         try {
           const product = await Product.findById(productId);
@@ -292,9 +344,30 @@ const handler = async (req, res) => {
         if (!isMatch) {
           return res.status(400).json({ message: 'Invalid credentials' });
         }
-        const payload = { user: { id: user.id, isAdmin: user.isAdmin } };
+        console.log('🔐 Creating JWT token for user:', user.email);
+        console.log('🔒 User isAdmin:', user.isAdmin);
+        console.log('🔑 JWT_SECRET available:', !!process.env.JWT_SECRET);
+        
+        const payload = { 
+          user: { 
+            id: user.id, 
+            email: user.email,
+            name: user.name,
+            isAdmin: user.isAdmin 
+          } 
+        };
+        
+        console.log('📦 JWT Payload:', payload);
+        
         jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }, (err, token) => {
-          if (err) throw err;
+          if (err) {
+            console.error('❌ JWT signing error:', err);
+            throw err;
+          }
+          
+          console.log('✅ JWT token created successfully');
+          console.log('🎫 Token length:', token.length);
+          
           res.json({
             token,
             user: { id: user.id, name: user.name, email: user.email, isAdmin: user.isAdmin }
@@ -307,8 +380,14 @@ const handler = async (req, res) => {
     // Orders endpoints (temporary - until separate files are deployed)
     if (pathname === '/api/orders') {
       if (req.method === 'GET') {
-        // Temporarily remove auth for debugging
-        console.log('🔍 Getting orders without auth check');
+        console.log('🔍 Getting orders - checking authentication');
+        
+        // Check authentication
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          console.log('❌ Authentication failed:', auth.error);
+          return res.status(401).json({ message: auth.error });
+        }
         
         const orders = await Order.find()
           .populate('items.product', 'name images')

@@ -14,17 +14,48 @@ const ManageOrders = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('adminToken');
+      console.log('Admin token:', token ? 'Token exists' : 'No token found');
+      
+      if (!token) {
+        console.error('No admin token found');
+        Swal.fire({
+          title: 'Authentication Required!',
+          text: 'Please login as admin first.',
+          icon: 'warning',
+          confirmButtonColor: '#b71c1c'
+        });
+        setOrders([]);
+        return;
+      }
+      
       const response = await fetch(getApiUrl(API_ENDPOINTS.ORDERS), {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
+      
+      console.log('Response status:', response.status);
+      
+      if (response.status === 401) {
+        console.error('Unauthorized - token might be expired');
+        localStorage.removeItem('adminToken');
+        Swal.fire({
+          title: 'Session Expired!',
+          text: 'Please login again.',
+          icon: 'warning',
+          confirmButtonColor: '#b71c1c'
+        });
+        setOrders([]);
+        return;
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('Orders data:', data);
       
       // Filter out orders with invalid IDs on frontend as well
       const validOrders = Array.isArray(data) ? data.filter(order => 

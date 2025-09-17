@@ -135,6 +135,9 @@ const AddProduct = () => {
         images: images // Already base64 strings
       };
 
+      console.log('🚀 Sending product data:', productData);
+      console.log('📡 API URL:', getApiUrl(API_ENDPOINTS.PRODUCTS));
+      
       const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS), {
         method: 'POST',
         headers: {
@@ -143,6 +146,9 @@ const AddProduct = () => {
         },
         body: JSON.stringify(productData),
       });
+      
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response ok:', response.ok);
 
       if (response.ok) {
         Swal.fire({
