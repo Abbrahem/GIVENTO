@@ -546,12 +546,17 @@ const handler = async (req, res) => {
           try {
             console.log('🔍 Trying to populate orders...');
             orders = await Order.find()
-              .populate('items.product', 'name images')
+              .populate({
+                path: 'items.product',
+                select: 'name images',
+                options: { strictPopulate: false }
+              })
               .sort({ createdAt: -1 })
               .limit(50);
             console.log('✅ Orders populated successfully:', orders.length);
           } catch (populateError) {
             console.log('⚠️ Populate failed, using orders without populate:', populateError.message);
+            console.log('⚠️ Populate error details:', populateError);
             // Use the orders we got without populate
           }
           
@@ -566,26 +571,40 @@ const handler = async (req, res) => {
             return isValid;
           }).map(order => {
             // Clean up the order object to avoid any serialization issues
-            return {
+            const cleanOrder = {
               _id: order._id,
               customerName: order.customerName,
               customerPhone: order.customerPhone,
               alternatePhone: order.alternatePhone,
               customerAddress: order.customerAddress,
-              items: order.items.map(item => ({
-                product: item.product,
-                productName: item.productName,
-                price: item.price,
-                quantity: item.quantity,
-                size: item.size,
-                color: item.color,
-                image: item.image
-              })),
+              items: order.items.map(item => {
+                // Handle cases where product might be null or not populated
+                let productInfo = null;
+                if (item.product && typeof item.product === 'object') {
+                  productInfo = {
+                    _id: item.product._id,
+                    name: item.product.name,
+                    images: item.product.images
+                  };
+                }
+                
+                return {
+                  product: productInfo,
+                  productName: item.productName,
+                  price: item.price,
+                  quantity: item.quantity,
+                  size: item.size,
+                  color: item.color,
+                  image: item.image
+                };
+              }),
               totalAmount: order.totalAmount,
               status: order.status,
               createdAt: order.createdAt,
               updatedAt: order.updatedAt
             };
+            
+            return cleanOrder;
           });
           
           console.log('✅ Valid orders count:', validOrders.length);
