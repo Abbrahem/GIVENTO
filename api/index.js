@@ -224,14 +224,20 @@ const handler = async (req, res) => {
       const productId = pathname.split('/').pop();
       console.log('🆔 Extracted Product ID:', productId);
       console.log('📏 Product ID length:', productId.length);
-      console.log('✅ Regex match successful for product by ID');
+      console.log('✅ Pattern match successful for product by ID');
+      console.log('🔍 Full pathname:', pathname);
+      console.log('🔍 Split result:', pathname.split('/'));
       
-      // Validate ObjectId format
-      if (!mongoose.Types.ObjectId.isValid(productId)) {
-        console.log('❌ Invalid ObjectId format:', productId);
-        return res.status(400).json({ message: 'Invalid product ID format' });
+      // Try to validate ObjectId format but don't fail if invalid
+      const isValidObjectId = mongoose.Types.ObjectId.isValid(productId);
+      console.log('🧪 ObjectId validation result:', isValidObjectId);
+      
+      if (!isValidObjectId) {
+        console.log('⚠️ Invalid ObjectId format, but continuing anyway:', productId);
+        // Don't return error, let's see what happens
+      } else {
+        console.log('✅ Valid ObjectId format confirmed');
       }
-      console.log('✅ Valid ObjectId format confirmed');
       
       if (req.method === 'GET') {
         try {
@@ -495,7 +501,55 @@ const handler = async (req, res) => {
       });
     }
 
+    // EMERGENCY FALLBACK - Try to handle any products route that didn't match above
+    if (pathname.includes('/api/products/') && !pathname.includes('/latest') && req.method === 'GET') {
+      console.log('🚨 EMERGENCY FALLBACK - Trying to handle products route');
+      const parts = pathname.split('/');
+      console.log('🔍 URL parts:', parts);
+      
+      // Try to extract product ID from any position
+      let productId = null;
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i] === 'products' && i + 1 < parts.length) {
+          productId = parts[i + 1];
+          break;
+        }
+      }
+      
+      if (productId) {
+        console.log('🆔 EMERGENCY - Extracted Product ID:', productId);
+        try {
+          const product = await Product.findById(productId);
+          if (product) {
+            console.log('✅ EMERGENCY - Found product:', product.name);
+            return res.json(product);
+          } else {
+            console.log('❌ EMERGENCY - Product not found in DB');
+            return res.status(404).json({ message: 'Product not found' });
+          }
+        } catch (error) {
+          console.log('❌ EMERGENCY - Error finding product:', error.message);
+          return res.status(500).json({ message: 'Error finding product', error: error.message });
+        }
+      }
+    }
+
+    // CATCH ALL - Log everything that doesn't match
     console.log('❌ Route not found:', pathname);
+    console.log('🔍 Request method:', req.method);
+    console.log('🔍 Full URL:', req.url);
+    console.log('🔍 Pathname length:', pathname.length);
+    console.log('🔍 Pathname chars:', pathname.split('').map(c => c.charCodeAt(0)));
+    
+    // Check if it's a products route that should have matched
+    if (pathname.includes('/api/products/')) {
+      console.log('🚨 This looks like a products route that should have matched!');
+      console.log('  - startsWith /api/products/:', pathname.startsWith('/api/products/'));
+      console.log('  - split length:', pathname.split('/').length);
+      console.log('  - is not latest:', pathname !== '/api/products/latest');
+      console.log('  - split parts:', pathname.split('/'));
+    }
+    
     console.log('🔍 Available routes checked:');
     console.log('  - /api/products (GET, POST)');
     console.log('  - /api/products/latest (GET)'); 
@@ -507,12 +561,6 @@ const handler = async (req, res) => {
     console.log('  - /api/categories (GET)');
     console.log('  - /api/categories/:slug/products (GET)');
     console.log('  - /api/health (GET)');
-    console.log('🔗 Request details:', {
-      method: req.method,
-      pathname,
-      url: req.url,
-      headers: req.headers
-    });
     return res.status(404).json({ 
       message: `Route not found: ${pathname}`,
       method: req.method,
