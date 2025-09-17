@@ -3,6 +3,8 @@ import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../../config/api';
 import { getImageUrl } from '../../utils/imageUtils';
 import { makeAuthenticatedRequest, getValidToken } from '../../utils/auth';
+import { debugAuth, testApiCall } from '../../utils/debug';
+import { api } from '../../utils/apiClient';
 
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -16,17 +18,12 @@ const ManageOrders = () => {
     try {
       console.log('🔍 Fetching orders...');
       
-      const result = await makeAuthenticatedRequest(getApiUrl(API_ENDPOINTS.ORDERS));
+      // Debug authentication
+      debugAuth();
       
-      if (!result.success) {
-        if (result.requiresLogin) {
-          setOrders([]);
-          return;
-        }
-        throw new Error('Failed to fetch orders');
-      }
+      const response = await api.getOrders();
+      const data = response.data;
       
-      const data = await result.response.json();
       console.log('📊 Orders data:', data);
       
       // Filter out orders with invalid IDs on frontend as well
@@ -39,9 +36,17 @@ const ManageOrders = () => {
     } catch (error) {
       console.error('❌ Error fetching orders:', error);
       setOrders([]);
+      
+      let errorMessage = 'Failed to load orders. Please try again.';
+      if (error.response?.status === 401) {
+        errorMessage = 'Session expired. Please login again.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       Swal.fire({
         title: 'Error!',
-        text: 'Failed to load orders. Please try again.',
+        text: errorMessage,
         icon: 'error',
         confirmButtonColor: '#b71c1c'
       });
@@ -52,29 +57,28 @@ const ManageOrders = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const result = await makeAuthenticatedRequest(getApiUrl(`${API_ENDPOINTS.ORDER_BY_ID(orderId)}/status`), {
-        method: 'PUT',
-        body: JSON.stringify({ status: newStatus })
+      await api.updateOrderStatus(orderId, newStatus);
+      
+      fetchOrders(); // Refresh orders
+      Swal.fire({
+        title: 'Success!',
+        text: 'Order status updated successfully',
+        icon: 'success',
+        confirmButtonColor: '#b71c1c'
       });
-
-      if (result.success) {
-        fetchOrders(); // Refresh orders
-        Swal.fire({
-          title: 'Success!',
-          text: 'Order status updated successfully',
-          icon: 'success',
-          confirmButtonColor: '#b71c1c'
-        });
-      } else if (result.requiresLogin) {
-        return; // Auth utility already showed the message
-      } else {
-        throw new Error('Failed to update order status');
-      }
     } catch (error) {
       console.error('Error updating order:', error);
+      
+      let errorMessage = 'Failed to update order status. Please try again.';
+      if (error.response?.status === 401) {
+        errorMessage = 'Session expired. Please login again.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       Swal.fire({
         title: 'Error!',
-        text: 'Failed to update order status. Please try again.',
+        text: errorMessage,
         icon: 'error',
         confirmButtonColor: '#b71c1c'
       });
@@ -95,28 +99,28 @@ const ManageOrders = () => {
 
     if (result.isConfirmed) {
       try {
-        const deleteResult = await makeAuthenticatedRequest(getApiUrl(API_ENDPOINTS.ORDER_BY_ID(orderId)), {
-          method: 'DELETE'
+        await api.deleteOrder(orderId);
+        
+        fetchOrders(); // Refresh orders
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Order has been deleted successfully',
+          icon: 'success',
+          confirmButtonColor: '#b71c1c'
         });
-
-        if (deleteResult.success) {
-          fetchOrders(); // Refresh orders
-          Swal.fire({
-            title: 'Deleted!',
-            text: 'Order has been deleted successfully',
-            icon: 'success',
-            confirmButtonColor: '#b71c1c'
-          });
-        } else if (deleteResult.requiresLogin) {
-          return; // Auth utility already showed the message
-        } else {
-          throw new Error('Failed to delete order');
-        }
       } catch (error) {
         console.error('Error deleting order:', error);
+        
+        let errorMessage = 'Failed to delete order. Please try again.';
+        if (error.response?.status === 401) {
+          errorMessage = 'Session expired. Please login again.';
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        
         Swal.fire({
           title: 'Error!',
-          text: 'Failed to delete order. Please try again.',
+          text: errorMessage,
           icon: 'error',
           confirmButtonColor: '#b71c1c'
         });
@@ -138,29 +142,29 @@ const ManageOrders = () => {
 
     if (result.isConfirmed) {
       try {
-        const cleanupResult = await makeAuthenticatedRequest(getApiUrl('/api/orders/cleanup'), {
-          method: 'DELETE'
+        const response = await api.cleanupOrders();
+        const data = response.data;
+        
+        fetchOrders(); // Refresh orders
+        Swal.fire({
+          title: 'Cleanup Complete!',
+          text: `${data.deletedCount} invalid orders were removed from the database.`,
+          icon: 'success',
+          confirmButtonColor: '#b71c1c'
         });
-
-        if (cleanupResult.success) {
-          const data = await cleanupResult.response.json();
-          fetchOrders(); // Refresh orders
-          Swal.fire({
-            title: 'Cleanup Complete!',
-            text: `${data.deletedCount} invalid orders were removed from the database.`,
-            icon: 'success',
-            confirmButtonColor: '#b71c1c'
-          });
-        } else if (cleanupResult.requiresLogin) {
-          return; // Auth utility already showed the message
-        } else {
-          throw new Error('Failed to cleanup database');
-        }
       } catch (error) {
         console.error('Error cleaning up orders:', error);
+        
+        let errorMessage = 'Failed to cleanup database. Please try again.';
+        if (error.response?.status === 401) {
+          errorMessage = 'Session expired. Please login again.';
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        
         Swal.fire({
           title: 'Error!',
-          text: 'Failed to cleanup database. Please try again.',
+          text: errorMessage,
           icon: 'error',
           confirmButtonColor: '#b71c1c'
         });
@@ -214,6 +218,15 @@ const ManageOrders = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
             Clean Database
+          </button>
+          <button
+            onClick={testApiCall}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            Debug API
           </button>
         </div>
       </div>
