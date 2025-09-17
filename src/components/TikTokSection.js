@@ -14,7 +14,7 @@ const TikTokSection = () => {
   ];
   return (
     <section className="py-16 bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4 font-cairo">
             Follow Us on TikTok
@@ -26,7 +26,7 @@ const TikTokSection = () => {
 
         {/* Single Video - Centered */}
         <div className="flex justify-center">
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-sm">
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-lg w-full sm:max-w-xl lg:max-w-2xl">
             <div className="relative aspect-[9/16] bg-black">
               {/* HTML5 Video Player */}
               <video

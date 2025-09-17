@@ -31,7 +31,7 @@ const ManageOrders = () => {
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(getApiUrl(`/api/orders/${orderId}/status`), {
+      const response = await fetch(getApiUrl(`${API_ENDPOINTS.ORDER_BY_ID(orderId)}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -48,9 +48,17 @@ const ManageOrders = () => {
           icon: 'success',
           confirmButtonColor: '#b71c1c'
         });
+      } else {
+        throw new Error('Failed to update order status');
       }
     } catch (error) {
       console.error('Error updating order:', error);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to update order status. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#b71c1c'
+      });
     }
   };
 

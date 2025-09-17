@@ -9,12 +9,12 @@ const Home = () => {
   const [latestProduct, setLatestProduct] = useState(null);
 
   const categories = [
-    { name: 'Hoodies', image: '/t-shirt.JPG', slug: 'hoodies' },
     { name: 'Polo Shirts', image: '/1polor.jpg', slug: 'polo shirts' },
     { name: 'T-Shirt', image: '/t-shirt.JPG', slug: 't-shirt' },
+    { name: 'Hoodies', image: '/t-shirt.JPG', slug: 'hoodies' },
+    { name: 'Zip-up', image: '/t-shirt.JPG', slug: 'zip-up' },
     { name: 'Pants', image: '/pantss.JPG', slug: 'pants' },
     { name: 'Cap', image: '/t-shirt.JPG', slug: 'cap' },
-    { name: 'Zip-up', image: '/t-shirt.JPG', slug: 'zip-up' },
     { name: 'Shorts', image: '/1short.JPEG', slug: 'shorts' }
   ];
 
@@ -99,9 +99,9 @@ const Home = () => {
             <h2 className="text-4xl font-bold text-gray-800 mb-4 font-cairo">Shop by Category</h2>
             <p className="text-gray-600 text-lg font-cairo">Discover our wide range of products</p>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:gap-8 max-w-6xl mx-auto">
             {categories.map((category, index) => (
-              <div key={index} className="group relative rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden h-48 sm:h-56 lg:h-64">
+              <div key={index} className="group relative rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 overflow-hidden h-64 sm:h-72 lg:h-80">
                 {/* Full Background Image */}
                 <img 
                   src={category.image} 
@@ -114,16 +114,16 @@ const Home = () => {
                 <div className="absolute inset-0 bg-black bg-opacity-30 group-hover:bg-opacity-40 transition-all duration-300"></div>
                 
                 {/* Content Overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 p-4">
+                <div className="absolute inset-0 flex flex-col items-center justify-end pb-10 p-6">
                   {/* Category Name - Lower Position */}
-                  <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-3 font-cairo text-center drop-shadow-lg">
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-4 font-cairo text-center drop-shadow-lg">
                     {category.name}
                   </h3>
                   
                   {/* Simple Text Button - Even Lower Position */}
                   <Link 
                     to={`/category/${category.slug}`}
-                    className="text-white font-semibold transition-all duration-300 hover:scale-105 font-cairo text-sm sm:text-base drop-shadow-lg whitespace-nowrap"
+                    className="text-white font-semibold transition-all duration-300 hover:scale-105 font-cairo text-base sm:text-lg drop-shadow-lg whitespace-nowrap"
                   >
                     Shop Now
                   </Link>
