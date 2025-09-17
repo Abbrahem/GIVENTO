@@ -26,12 +26,12 @@ const ManageOrders = () => {
       console.log('🎫 Manual token check:', !!token);
       
       const response = await api.getOrders();
-      const data = response.data;
+      const { orders: orderData } = response.data;
       
-      console.log('📊 Orders data:', data);
+      console.log('📊 Orders data:', response.data);
       
       // Filter out orders with invalid IDs on frontend as well
-      const validOrders = Array.isArray(data) ? data.filter(order => 
+      const validOrders = Array.isArray(orderData) ? orderData.filter(order => 
         order._id && order._id.length === 24 && /^[0-9a-fA-F]{24}$/.test(order._id)
       ) : [];
       

@@ -11,10 +11,10 @@ const Home = () => {
   const categories = [
     { name: 'Polo Shirts', image: '/1polor.jpg', slug: 'polo shirts' },
     { name: 'T-Shirt', image: '/t-shirt.JPG', slug: 't-shirt' },
-    { name: 'Hoodies', image: '/t-shirt.JPG', slug: 'hoodies' },
-    { name: 'Zip-up', image: '/t-shirt.JPG', slug: 'zip-up' },
+    { name: 'Hoodies', image: '/1hoodies.JPG', slug: 'hoodies' },
+    { name: 'Zip-up', image: '/1zip-up.jpg', slug: 'zip-up' },
     { name: 'Pants', image: '/pantss.JPG', slug: 'pants' },
-    { name: 'Cap', image: '/t-shirt.JPG', slug: 'cap' },
+    { name: 'Cap', image: '/1cap.jpg', slug: 'cap' },
     { name: 'Shorts', image: '/1short.JPEG', slug: 'shorts' }
   ];
 
