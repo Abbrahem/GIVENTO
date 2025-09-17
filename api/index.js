@@ -548,85 +548,25 @@ const handler = async (req, res) => {
         console.log('✅ Authentication successful, fetching orders...');
         
         try {
-          console.log('📊 Querying orders from database...');
+          console.log('📊 Querying orders from database (WITHOUT POPULATE)...');
           
-          // First try without populate to see if that's the issue
-          let orders;
-          try {
-            console.log('🔍 Trying to fetch orders without populate...');
-            orders = await Order.find().sort({ createdAt: -1 }).limit(50);
-            console.log('✅ Orders fetched without populate:', orders.length);
-          } catch (basicError) {
-            console.error('❌ Even basic order fetch failed:', basicError);
-            return res.status(500).json({ 
-              message: 'Database connection error', 
-              error: basicError.message
-            });
-          }
+          // Simple query without populate to avoid issues
+          const orders = await Order.find()
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean(); // Use lean for better performance
           
-          // Now try to populate if basic fetch worked
-          try {
-            console.log('🔍 Trying to populate orders...');
-            orders = await Order.find()
-              .populate({
-                path: 'items.product',
-                select: 'name images',
-                options: { strictPopulate: false }
-              })
-              .sort({ createdAt: -1 })
-              .limit(50);
-            console.log('✅ Orders populated successfully:', orders.length);
-          } catch (populateError) {
-            console.log('⚠️ Populate failed, using orders without populate:', populateError.message);
-            console.log('⚠️ Populate error details:', populateError);
-            // Use the orders we got without populate
-          }
+          console.log('✅ Orders fetched successfully:', orders.length);
           
           console.log('📊 Raw orders count:', orders.length);
           
-          // Filter out orders with invalid IDs and prepare response
+          // Simple response without complex processing
           const validOrders = orders.filter(order => {
             const isValid = mongoose.Types.ObjectId.isValid(order._id);
             if (!isValid) {
               console.log('❌ Invalid order ID found:', order._id);
             }
             return isValid;
-          }).map(order => {
-            // Clean up the order object to avoid any serialization issues
-            const cleanOrder = {
-              _id: order._id,
-              customerName: order.customerName,
-              customerPhone: order.customerPhone,
-              alternatePhone: order.alternatePhone,
-              customerAddress: order.customerAddress,
-              items: order.items.map(item => {
-                // Handle cases where product might be null or not populated
-                let productInfo = null;
-                if (item.product && typeof item.product === 'object') {
-                  productInfo = {
-                    _id: item.product._id,
-                    name: item.product.name,
-                    images: item.product.images
-                  };
-                }
-                
-                return {
-                  product: productInfo,
-                  productName: item.productName,
-                  price: item.price,
-                  quantity: item.quantity,
-                  size: item.size,
-                  color: item.color,
-                  image: item.image
-                };
-              }),
-              totalAmount: order.totalAmount,
-              status: order.status,
-              createdAt: order.createdAt,
-              updatedAt: order.updatedAt
-            };
-            
-            return cleanOrder;
           });
           
           console.log('✅ Valid orders count:', validOrders.length);
