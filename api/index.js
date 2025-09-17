@@ -131,6 +131,25 @@ const connectDB = async () => {
   }
 };
 
+// Authentication middleware for Vercel
+const authenticateAdmin = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { isValid: false, error: 'No token provided' };
+  }
+  
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.user || !decoded.user.isAdmin) {
+      return { isValid: false, error: 'Admin access required' };
+    }
+    return { isValid: true, user: decoded.user };
+  } catch (error) {
+    return { isValid: false, error: 'Invalid token' };
+  }
+};
+
 module.exports = async (req, res) => {
   // Enable CORS for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -145,7 +164,9 @@ module.exports = async (req, res) => {
   try {
     await connectDB();
     const { pathname } = parse(req.url, true);
-    console.log('API Request:', req.method, pathname);
+    console.log('🚀 API Request:', req.method, pathname);
+    console.log('🔍 Request URL:', req.url);
+    console.log('📋 Request headers:', req.headers);
 
     // Products endpoints
     if (pathname === '/api/products') {
@@ -154,6 +175,12 @@ module.exports = async (req, res) => {
         return res.json(products);
       }
       if (req.method === 'POST') {
+        // Authenticate admin for creating products
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          return res.status(401).json({ message: auth.error });
+        }
+        
         const { name, description, originalPrice, salePrice, category, sizes, colors, images } = req.body;
         
         // Validate that images are provided and are base64 strings
@@ -185,14 +212,19 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Product by ID endpoint - More flexible pattern to catch various ID formats
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]+$/)) {
+    // Product by ID endpoint - Match MongoDB ObjectId (24 hex characters)
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}$/)) {
       const productId = pathname.split('/').pop();
+      console.log('🆔 Extracted Product ID:', productId);
+      console.log('📏 Product ID length:', productId.length);
+      console.log('✅ Regex match successful for product by ID');
       
       // Validate ObjectId format
       if (!mongoose.Types.ObjectId.isValid(productId)) {
+        console.log('❌ Invalid ObjectId format:', productId);
         return res.status(400).json({ message: 'Invalid product ID format' });
       }
+      console.log('✅ Valid ObjectId format confirmed');
       
       if (req.method === 'GET') {
         try {
@@ -207,6 +239,12 @@ module.exports = async (req, res) => {
         }
       }
       if (req.method === 'PUT') {
+        // Authenticate admin for updating products
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          return res.status(401).json({ message: auth.error });
+        }
+        
         try {
           const updates = req.body;
           const product = await Product.findByIdAndUpdate(productId, updates, { new: true });
@@ -220,6 +258,12 @@ module.exports = async (req, res) => {
         }
       }
       if (req.method === 'DELETE') {
+        // Authenticate admin for deleting products
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          return res.status(401).json({ message: auth.error });
+        }
+        
         try {
           const product = await Product.findByIdAndDelete(productId);
           if (!product) {
@@ -233,16 +277,27 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Product toggle availability endpoint - More flexible pattern
-    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]+\/toggle$/)) {
+    // Product toggle availability endpoint - Match MongoDB ObjectId (24 hex characters)
+    if (pathname.match(/^\/api\/products\/[a-fA-F0-9]{24}\/toggle$/)) {
       const productId = pathname.split('/')[3];
+      console.log('🔄 Extracted Product ID for toggle:', productId);
+      console.log('📏 Product ID length for toggle:', productId.length);
+      console.log('✅ Regex match successful for product toggle');
       
       // Validate ObjectId format
       if (!mongoose.Types.ObjectId.isValid(productId)) {
+        console.log('❌ Invalid ObjectId format for toggle:', productId);
         return res.status(400).json({ message: 'Invalid product ID format' });
       }
+      console.log('✅ Valid ObjectId format confirmed for toggle');
       
       if (req.method === 'PUT') {
+        // Authenticate admin for toggling product availability
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          return res.status(401).json({ message: auth.error });
+        }
+        
         try {
           const product = await Product.findById(productId);
           if (!product) {
@@ -411,8 +466,45 @@ module.exports = async (req, res) => {
       });
     }
 
-    console.log('Route not found:', pathname);
-    return res.status(404).json({ message: `Route not found: ${pathname}` });
+    console.log('❌ Route not found:', pathname);
+    console.log('🔍 Available routes checked:');
+    console.log('  - /api/products (GET, POST)');
+    console.log('  - /api/products/latest (GET)'); 
+    console.log('  - /api/products/:id (GET, PUT, DELETE)');
+    console.log('  - /api/products/:id/toggle (PUT)');
+    console.log('  - /api/auth/login (POST)');
+    console.log('  - /api/orders (GET, POST)');
+    console.log('  - /api/orders/:id (GET, PUT)');
+    console.log('  - /api/categories (GET)');
+    console.log('  - /api/categories/:slug/products (GET)');
+    console.log('  - /api/health (GET)');
+    console.log('🔗 Request details:', {
+      method: req.method,
+      pathname,
+      url: req.url,
+      headers: req.headers
+    });
+    return res.status(404).json({ 
+      message: `Route not found: ${pathname}`,
+      method: req.method,
+      availableRoutes: [
+        'GET /api/products',
+        'POST /api/products',
+        'GET /api/products/latest',
+        'GET /api/products/:id',
+        'PUT /api/products/:id',
+        'DELETE /api/products/:id',
+        'PUT /api/products/:id/toggle',
+        'POST /api/auth/login',
+        'GET /api/orders',
+        'POST /api/orders',
+        'GET /api/orders/:id',
+        'PUT /api/orders/:id',
+        'GET /api/categories',
+        'GET /api/categories/:slug/products',
+        'GET /api/health'
+      ]
+    });
   } catch (error) {
     console.error('API Error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });

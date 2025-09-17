@@ -40,7 +40,12 @@ const ManageProducts = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(productId)), {
+      const deleteUrl = getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(productId));
+      console.log('🗑️ DELETE URL:', deleteUrl);
+      console.log('🆔 Product ID:', productId);
+      console.log('🔗 API_ENDPOINTS.PRODUCT_BY_ID(productId):', API_ENDPOINTS.PRODUCT_BY_ID(productId));
+      
+      const response = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -48,6 +53,7 @@ const ManageProducts = () => {
       });
 
       if (response.ok) {
+        console.log('✅ Product deleted successfully');
         Swal.fire({
           icon: 'success',
           title: 'Deleted!',
@@ -56,10 +62,13 @@ const ManageProducts = () => {
         });
         fetchProducts();
       } else {
+        console.log('❌ Delete failed:', response.status, response.statusText);
+        const errorData = await response.text();
+        console.log('❌ Delete error response:', errorData);
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'Failed to delete product.',
+          text: `Failed to delete product. Status: ${response.status}`,
           confirmButtonColor: '#dc2626'
         });
       }
@@ -76,7 +85,12 @@ const ManageProducts = () => {
   const handleToggleAvailability = async (productId) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(getApiUrl(`${API_ENDPOINTS.PRODUCT_BY_ID(productId)}/toggle`), {
+      const toggleUrl = getApiUrl(`${API_ENDPOINTS.PRODUCT_BY_ID(productId)}/toggle`);
+      console.log('🔄 TOGGLE URL:', toggleUrl);
+      console.log('🆔 Product ID:', productId);
+      console.log('🔗 API_ENDPOINTS.PRODUCT_BY_ID(productId):', API_ENDPOINTS.PRODUCT_BY_ID(productId));
+      
+      const response = await fetch(toggleUrl, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -84,6 +98,7 @@ const ManageProducts = () => {
       });
 
       if (response.ok) {
+        console.log('✅ Product availability toggled successfully');
         Swal.fire({
           icon: 'success',
           title: 'Updated!',
@@ -94,10 +109,13 @@ const ManageProducts = () => {
         });
         fetchProducts();
       } else {
+        console.log('❌ Toggle failed:', response.status, response.statusText);
+        const errorData = await response.text();
+        console.log('❌ Toggle error response:', errorData);
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'Failed to update product availability.',
+          text: `Failed to update product availability. Status: ${response.status}`,
           confirmButtonColor: '#dc2626'
         });
       }
@@ -130,7 +148,6 @@ const ManageProducts = () => {
     try {
       const token = localStorage.getItem('adminToken');
       
-      // Send JSON data (images are already base64 in the product)
       const productData = {
         name: updatedProduct.name,
         description: updatedProduct.description,
@@ -139,11 +156,14 @@ const ManageProducts = () => {
         category: updatedProduct.category,
         sizes: updatedProduct.sizes,
         colors: updatedProduct.colors
-        // Note: We're not updating images in this edit modal
-        // Images remain the same base64 strings from MongoDB
       };
 
-      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(updatedProduct._id)), {
+      const updateUrl = getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(updatedProduct._id));
+      console.log('✏️ UPDATE URL:', updateUrl);
+      console.log('🆔 Product ID:', updatedProduct._id);
+      console.log('🔗 API_ENDPOINTS.PRODUCT_BY_ID(updatedProduct._id):', API_ENDPOINTS.PRODUCT_BY_ID(updatedProduct._id));
+      
+      const response = await fetch(updateUrl, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -155,7 +175,6 @@ const ManageProducts = () => {
       if (response.ok) {
         const updatedData = await response.json();
         
-        // Update the products list with the new data
         setProducts(prevProducts => 
           prevProducts.map(product => 
             product._id === updatedProduct._id ? updatedData : product
@@ -239,52 +258,25 @@ const ManageProducts = () => {
                           className="h-12 w-12 rounded-xl object-cover shadow-sm"
                           src={product.images && product.images.length > 0 ? getImageUrl(product.images[0]) : '/placeholder-image.jpg'}
                           alt={product.name}
-                          onError={(e) => {
-                            e.target.src = '/placeholder-image.jpg';
-                          }}
+                          onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
                         />
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-semibold text-gray-900 font-cairo">
-                          {product.name}
-                        </div>
+                        <div className="text-sm font-semibold text-gray-900 font-cairo">{product.name}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-cairo capitalize">
-                    {product.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 font-cairo">
-                    ${product.salePrice}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-cairo capitalize">{product.category}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 font-cairo">${product.salePrice}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full font-cairo ${
-                      product.isAvailable 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full font-cairo ${product.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {product.isAvailable ? 'Available' : 'Unavailable'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-lg transition-colors font-cairo"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleToggleAvailability(product._id)}
-                      className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 px-3 py-1 rounded-lg transition-colors font-cairo"
-                    >
-                      {product.isAvailable ? 'Hide' : 'Show'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product._id)}
-                      className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded-lg transition-colors font-cairo"
-                    >
-                      Delete
-                    </button>
+                    <button onClick={() => handleEdit(product)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-lg transition-colors font-cairo">Edit</button>
+                    <button onClick={() => handleToggleAvailability(product._id)} className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 px-3 py-1 rounded-lg transition-colors font-cairo">{product.isAvailable ? 'Hide' : 'Show'}</button>
+                    <button onClick={() => handleDelete(product._id)} className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded-lg transition-colors font-cairo">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -301,56 +293,27 @@ const ManageProducts = () => {
                   className="h-16 w-16 rounded-xl object-cover shadow-sm"
                   src={product.images && product.images.length > 0 ? getImageUrl(product.images[0]) : '/placeholder-image.jpg'}
                   alt={product.name}
-                  onError={(e) => {
-                    e.target.src = '/placeholder-image.jpg';
-                  }}
+                  onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-gray-900 font-cairo truncate">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 font-cairo capitalize">
-                    {product.category}
-                  </p>
-                  <p className="text-lg font-bold text-gray-900 font-cairo">
-                    ${product.salePrice}
-                  </p>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full font-cairo mt-2 ${
-                    product.isAvailable 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {product.isAvailable ? 'Available' : 'Unavailable'}
-                  </span>
+                  <h3 className="text-lg font-semibold text-gray-900 font-cairo truncate">{product.name}</h3>
+                  <p className="text-sm text-gray-600 font-cairo capitalize">{product.category}</p>
+                  <p className="text-lg font-bold text-gray-900 font-cairo">${product.salePrice}</p>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full font-cairo mt-2 ${product.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{product.isAvailable ? 'Available' : 'Unavailable'}</span>
                 </div>
               </div>
               <div className="mt-4 flex flex-col space-y-2">
-                <button
-                  onClick={() => handleEdit(product)}
-                  className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 py-2 rounded-lg transition-colors font-cairo font-semibold"
-                >
-                  Edit Product
-                </button>
+                <button onClick={() => handleEdit(product)} className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 py-2 rounded-lg transition-colors font-cairo font-semibold">Edit Product</button>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleToggleAvailability(product._id)}
-                    className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 py-2 rounded-lg transition-colors font-cairo font-semibold"
-                  >
-                    {product.isAvailable ? 'Hide' : 'Show'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="bg-red-100 text-red-700 hover:bg-red-200 py-2 rounded-lg transition-colors font-cairo font-semibold"
-                  >
-                    Delete
-                  </button>
+                  <button onClick={() => handleToggleAvailability(product._id)} className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 py-2 rounded-lg transition-colors font-cairo font-semibold">{product.isAvailable ? 'Hide' : 'Show'}</button>
+                  <button onClick={() => handleDelete(product._id)} className="bg-red-100 text-red-700 hover:bg-red-200 py-2 rounded-lg transition-colors font-cairo font-semibold">Delete</button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
-      
+
       {editingProduct && (
         <EditProductModal 
           product={editingProduct} 
@@ -362,235 +325,225 @@ const ManageProducts = () => {
   );
 };
 
+// --------------------
+// EditProductModal Component
+// --------------------
 const EditProductModal = ({ product, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: product?.name || '',
     description: product?.description || '',
-    originalPrice: product?.originalPrice || '',
-    salePrice: product?.salePrice || '',
-    category: product?.category || '',
-    sizes: product?.sizes || [],
-    colors: product?.colors || []
+    originalPrice: product?.
+originalPrice: product?.originalPrice || '',
+salePrice: product?.salePrice || '',
+category: product?.category || '',
+sizes: product?.sizes || [],
+colors: product?.colors || []
+});
+
+const categories = ['t-shirt', 'pants', 'cap', 'zip-up', 'hoodies', 'polo shirts'];
+
+const sizeOptions = {
+  't-shirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+  'pants': ['28', '30', '32', '34', '36', '38', '40'],
+  'cap': ['One Size'],
+  'zip-up': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+  'hoodies': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+  'polo shirts': ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+};
+
+const colorOptions = [
+  'Off-white', 'Gray', 'Mint gray', 'Baby blue', 'White', 'Black', 
+  'Green', 'Blue', 'Beige', 'Red', 'Brown', 'Pink'
+];
+
+const getSizeOptions = () => {
+  if (formData.category === 'pants') return sizeOptions.pants;
+  if (formData.category === 'cap') return sizeOptions.cap;
+  if (formData.category === 't-shirt') return sizeOptions['t-shirt'];
+  if (formData.category === 'zip-up') return sizeOptions['zip-up'];
+  if (formData.category === 'hoodies') return sizeOptions['hoodies'];
+  if (formData.category === 'polo shirts') return sizeOptions['polo shirts'];
+  return [];
+};
+
+const handleChange = (e) => {
+  setFormData({
+    ...formData,
+    [e.target.name]: e.target.value
   });
+};
 
-  const categories = ['t-shirt', 'pants', 'cap', 'zip-up', 'hoodies', 'polo shirts'];
+const handleSizeChange = (e) => {
+  const size = e.target.value;
+  const updatedSizes = formData.sizes.includes(size)
+    ? formData.sizes.filter(s => s !== size)
+    : [...formData.sizes, size];
   
-  const sizeOptions = {
-    't-shirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    'pants': ['28', '30', '32', '34', '36', '38', '40'],
-    'cap': ['One Size'],
-    'zip-up': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    'hoodies': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    'polo shirts': ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-  };
+  setFormData({
+    ...formData,
+    sizes: updatedSizes
+  });
+};
 
-  const colorOptions = [
-    'Off-white', 'Gray', 'Mint gray', 'Baby blue', 'White', 'Black', 
-    'Green', 'Blue', 'Beige', 'Red', 'Brown', 'Pink'
-  ];
+const handleColorChange = (e) => {
+  const color = e.target.value;
+  const updatedColors = formData.colors.includes(color)
+    ? formData.colors.filter(c => c !== color)
+    : [...formData.colors, color];
+  
+  setFormData({
+    ...formData,
+    colors: updatedColors
+  });
+};
 
-  const getSizeOptions = () => {
-    if (formData.category === 'pants') return sizeOptions.pants;
-    if (formData.category === 'cap') return sizeOptions.cap;
-    if (formData.category === 't-shirt') return sizeOptions['t-shirt'];
-    if (formData.category === 'zip-up') return sizeOptions['zip-up'];
-    if (formData.category === 'hoodies') return sizeOptions['hoodies'];
-    if (formData.category === 'polo shirts') return sizeOptions['polo shirts'];
-    return [];
-  };
+const handleSubmit = (e) => {
+  e.preventDefault();
+  onSave({ ...product, ...formData });
+};
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSizeChange = (e) => {
-    const size = e.target.value;
-    const updatedSizes = formData.sizes.includes(size)
-      ? formData.sizes.filter(s => s !== size)
-      : [...formData.sizes, size];
-    
-    setFormData({
-      ...formData,
-      sizes: updatedSizes
-    });
-  };
-
-  const handleColorChange = (e) => {
-    const color = e.target.value;
-    const updatedColors = formData.colors.includes(color)
-      ? formData.colors.filter(c => c !== color)
-      : [...formData.colors, color];
-    
-    setFormData({
-      ...formData,
-      colors: updatedColors
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave({ ...product, ...formData });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-10 mx-auto p-8 border w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2 shadow-xl rounded-2xl bg-white border-gray-100">
-        <div className="border-b border-gray-200 pb-6 mb-8">
-          <h3 className="text-2xl font-bold text-gray-900 font-cairo">Edit Product</h3>
-          <p className="text-gray-600 mt-2">Update the product details below</p>
+return (
+  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div className="relative top-10 mx-auto p-8 border w-11/12 md:w-3/4 lg:w-2/3 xl:w-1/2 shadow-xl rounded-2xl bg-white border-gray-100">
+      <div className="border-b border-gray-200 pb-6 mb-8">
+        <h3 className="text-2xl font-bold text-gray-900 font-cairo">Edit Product</h3>
+        <p className="text-gray-600 mt-2">Update the product details below</p>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 font-cairo">Product Name</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+            placeholder="Enter product name"
+            required
+          />
         </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-8">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 font-cairo">
-              Product Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700 font-cairo">Original Price ($)</label>
             <input
-              type="text"
-              name="name"
-              value={formData.name}
+              type="number"
+              name="originalPrice"
+              value={formData.originalPrice}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
-              placeholder="Enter product name"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 font-cairo">
-                Original Price ($)
-              </label>
-              <input
-                type="number"
-                name="originalPrice"
-                value={formData.originalPrice}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 font-cairo">
-                Sale Price ($)
-              </label>
-              <input
-                type="number"
-                name="salePrice"
-                value={formData.salePrice}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 font-cairo">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="4"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
-              placeholder="Enter product description"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 font-cairo">
-              Category
-            </label>
-            <select
-              name="category"
-              value={formData.category}
+            <label className="block text-sm font-medium text-gray-700 font-cairo">Sale Price ($)</label>
+            <input
+              type="number"
+              name="salePrice"
+              value={formData.salePrice}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
               required
-            >
-              <option value="">Select Category</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </option>
-              ))}
-            </select>
+            />
           </div>
+        </div>
 
-          {formData.category && (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700 font-cairo">
-                Available Sizes
-              </label>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                {getSizeOptions().map((size) => (
-                  <label key={size} className="flex items-center space-x-2 p-2 border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="checkbox"
-                      value={size}
-                      checked={formData.sizes.includes(size)}
-                      onChange={handleSizeChange}
-                      className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                    />
-                    <span className="text-sm font-cairo">{size}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 font-cairo">Description</label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows="4"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+            placeholder="Enter product description"
+            required
+          />
+        </div>
 
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 font-cairo">Category</label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+            required
+          >
+            <option value="">Select Category</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {formData.category && (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700 font-cairo">
-              Available Colors
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {colorOptions.map((color) => (
-                <label key={color} className="flex items-center space-x-2 p-2 border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700 font-cairo">Available Sizes</label>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              {getSizeOptions().map((size) => (
+                <label key={size} className="flex items-center space-x-2 p-2 border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
                   <input
                     type="checkbox"
-                    value={color}
-                    checked={formData.colors.includes(color)}
-                    onChange={handleColorChange}
+                    value={size}
+                    checked={formData.sizes.includes(size)}
+                    onChange={handleSizeChange}
                     className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                   />
-                  <span className="text-sm font-cairo">{color}</span>
+                  <span className="text-sm font-cairo">{size}</span>
                 </label>
               ))}
             </div>
           </div>
+        )}
 
-          <div className="flex space-x-4 pt-6">
-            <button
-              type="submit"
-              className="flex-1 py-3 px-6 rounded-md font-semibold transition-colors font-cairo bg-red-600 hover:bg-red-700 text-white"
-            >
-              Save Changes
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 py-3 px-6 rounded-md font-semibold transition-colors font-cairo bg-gray-500 hover:bg-gray-600 text-white"
-            >
-              Cancel
-            </button>
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700 font-cairo">Available Colors</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {colorOptions.map((color) => (
+              <label key={color} className="flex items-center space-x-2 p-2 border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  value={color}
+                  checked={formData.colors.includes(color)}
+                  onChange={handleColorChange}
+                  className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                />
+                <span className="text-sm font-cairo">{color}</span>
+              </label>
+            ))}
           </div>
-        </form>
-      </div>
+        </div>
+
+        <div className="flex space-x-4 pt-6">
+          <button
+            type="submit"
+            className="flex-1 py-3 px-6 rounded-md font-semibold transition-colors font-cairo bg-red-600 hover:bg-red-700 text-white"
+          >
+            Save Changes
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 py-3 px-6 rounded-md font-semibold transition-colors font-cairo bg-gray-500 hover:bg-gray-600 text-white"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
-  );
+  </div>
+);
 };
 
 export default ManageProducts;

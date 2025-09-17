@@ -46,14 +46,27 @@ const ProductDetail = () => {
     }
     
     try {
-      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(id)));
+      const productUrl = getApiUrl(API_ENDPOINTS.PRODUCT_BY_ID(id));
+      console.log('🛍️ PRODUCT DETAIL URL:', productUrl);
+      console.log('🆔 Product ID from params:', id);
+      console.log('🔗 API_ENDPOINTS.PRODUCT_BY_ID(id):', API_ENDPOINTS.PRODUCT_BY_ID(id));
+      console.log('🌍 Current environment:', process.env.NODE_ENV);
+      
+      const response = await fetch(productUrl);
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Product data received:', data);
         setProduct(data);
         // Set default selections
         if (data.colors.length > 0) setSelectedColor(data.colors[0]);
         if (data.sizes.length > 0) setSelectedSize(data.sizes[0]);
       } else {
+        console.log('❌ Product fetch failed:', response.status, response.statusText);
+        const errorData = await response.text();
+        console.log('❌ Error response:', errorData);
         setProduct(null);
       }
     } catch (error) {
