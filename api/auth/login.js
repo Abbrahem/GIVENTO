@@ -38,6 +38,29 @@ const connectDB = async () => {
   }
 };
 
+// Helper function to parse JSON body for Vercel serverless functions
+const parseBody = async (req) => {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        if (body) {
+          resolve(JSON.parse(body));
+        } else {
+          resolve({});
+        }
+      } catch (error) {
+        console.error('Error parsing JSON body:', error);
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
+};
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -55,34 +78,94 @@ export default async function handler(req, res) {
   try {
     await connectDB();
     
-    const { email, password } = req.body;
+    // Parse JSON body for POST requests
+    let body = {};
+    if (req.headers['content-type']?.includes('application/json')) {
+      try {
+        body = await parseBody(req);
+        console.log('📦 Parsed request body:', body);
+      } catch (error) {
+        console.error('❌ Failed to parse request body:', error);
+        return res.status(400).json({ message: 'Invalid JSON in request body' });
+      }
+    }
+    
+    const { email, password } = body;
+
+    // Validate required fields
+    if (!email || !password) {
+      console.error('❌ Missing email or password');
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    
+    console.log('🔍 Login attempt for email:', email);
 
     // Check if user exists
     let user = await User.findOne({ email });
+    
+    // Auto-create admin user if it doesn't exist and trying to login with admin credentials
+    if (!user && email === 'admin@givento.com' && password === 'admin123') {
+      console.log('🔧 Auto-creating admin user...');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      
+      user = new User({
+        name: 'Admin',
+        email: 'admin@givento.com',
+        password: hashedPassword,
+        isAdmin: true
+      });
+      
+      await user.save();
+      console.log('✅ Admin user auto-created successfully');
+    }
+    
     if (!user) {
+      console.log('❌ User not found:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log('❌ Password mismatch for user:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    console.log('🔐 Creating JWT token for user:', user.email);
+    console.log('🔒 User isAdmin:', user.isAdmin);
+    console.log('🔑 JWT_SECRET available:', !!process.env.JWT_SECRET);
+    
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET is not set in environment variables');
+      return res.status(500).json({ message: 'Server configuration error' });
     }
 
     // Create JWT token
     const payload = {
       user: {
         id: user.id,
+        email: user.email,
+        name: user.name,
         isAdmin: user.isAdmin
       }
     };
+    
+    console.log('📦 JWT Payload:', payload);
 
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
       { expiresIn: '24h' },
       (err, token) => {
-        if (err) throw err;
+        if (err) {
+          console.error('❌ JWT signing error:', err);
+          return res.status(500).json({ message: 'Failed to create token' });
+        }
+        
+        console.log('✅ JWT token created successfully');
+        console.log('🎫 Token length:', token.length);
+        
         res.json({
           token,
           user: {

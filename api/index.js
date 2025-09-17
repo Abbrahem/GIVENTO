@@ -165,6 +165,29 @@ const authenticateAdmin = (req) => {
   }
 };
 
+// Helper function to parse JSON body for Vercel serverless functions
+const parseBody = async (req) => {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        if (body) {
+          resolve(JSON.parse(body));
+        } else {
+          resolve({});
+        }
+      } catch (error) {
+        console.error('Error parsing JSON body:', error);
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
+};
+
 const handler = async (req, res) => {
   // Enable CORS for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -178,6 +201,17 @@ const handler = async (req, res) => {
 
   try {
     await connectDB();
+    
+    // Parse JSON body for POST/PUT requests
+    if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type']?.includes('application/json')) {
+      try {
+        req.body = await parseBody(req);
+        console.log('📦 Parsed request body:', req.body);
+      } catch (error) {
+        console.error('❌ Failed to parse request body:', error);
+        return res.status(400).json({ message: 'Invalid JSON in request body' });
+      }
+    }
     const { pathname, query } = parse(req.url, true);
     console.log('🚀 API Request:', req.method, pathname);
     console.log('🔍 Request URL:', req.url);
@@ -370,7 +404,26 @@ const handler = async (req, res) => {
     // Auth endpoints
     if (pathname === '/api/auth/login') {
       if (req.method === 'POST') {
+        console.log('🔐 Login request received');
+        console.log('🔍 Request body:', req.body);
+        console.log('🔍 Content-Type:', req.headers['content-type']);
+        
+        // Validate request body
+        if (!req.body) {
+          console.error('❌ No request body found');
+          return res.status(400).json({ message: 'Request body is required' });
+        }
+        
         const { email, password } = req.body;
+        
+        // Validate required fields
+        if (!email || !password) {
+          console.error('❌ Missing email or password');
+          return res.status(400).json({ message: 'Email and password are required' });
+        }
+        
+        console.log('🔍 Login attempt for email:', email);
+        
         let user = await User.findOne({ email });
         
         // Auto-create admin user if it doesn't exist and trying to login with admin credentials
@@ -391,15 +444,24 @@ const handler = async (req, res) => {
         }
         
         if (!user) {
+          console.log('❌ User not found:', email);
           return res.status(400).json({ message: 'Invalid credentials' });
         }
+        
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+          console.log('❌ Password mismatch for user:', email);
           return res.status(400).json({ message: 'Invalid credentials' });
         }
+        
         console.log('🔐 Creating JWT token for user:', user.email);
         console.log('🔒 User isAdmin:', user.isAdmin);
         console.log('🔑 JWT_SECRET available:', !!process.env.JWT_SECRET);
+        
+        if (!process.env.JWT_SECRET) {
+          console.error('❌ JWT_SECRET is not set in environment variables');
+          return res.status(500).json({ message: 'Server configuration error' });
+        }
         
         const payload = { 
           user: { 
@@ -415,7 +477,7 @@ const handler = async (req, res) => {
         jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }, (err, token) => {
           if (err) {
             console.error('❌ JWT signing error:', err);
-            throw err;
+            return res.status(500).json({ message: 'Failed to create token' });
           }
           
           console.log('✅ JWT token created successfully');
