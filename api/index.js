@@ -92,16 +92,38 @@ const OrderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Register models safely
 let Product, User, Order;
-try {
-  Product = mongoose.model('Product');
-  User = mongoose.model('User');
-  Order = mongoose.model('Order');
-} catch {
+
+console.log('📋 Registering mongoose models...');
+console.log('📋 Existing models:', Object.keys(mongoose.models));
+
+// Check if models are already registered
+if (mongoose.models.Product) {
+  Product = mongoose.models.Product;
+  console.log('✅ Product model already registered');
+} else {
   Product = mongoose.model('Product', ProductSchema);
-  User = mongoose.model('User', UserSchema);
-  Order = mongoose.model('Order', OrderSchema);
+  console.log('✅ Product model registered');
 }
+
+if (mongoose.models.User) {
+  User = mongoose.models.User;
+  console.log('✅ User model already registered');
+} else {
+  User = mongoose.model('User', UserSchema);
+  console.log('✅ User model registered');
+}
+
+if (mongoose.models.Order) {
+  Order = mongoose.models.Order;
+  console.log('✅ Order model already registered');
+} else {
+  Order = mongoose.model('Order', OrderSchema);
+  console.log('✅ Order model registered');
+}
+
+console.log('📋 Final models:', Object.keys(mongoose.models));
 
 // Database connection
 let cachedConnection = null;
