@@ -332,13 +332,12 @@ const EditProductModal = ({ product, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: product?.name || '',
     description: product?.description || '',
-    originalPrice: product?.
-originalPrice: product?.originalPrice || '',
-salePrice: product?.salePrice || '',
-category: product?.category || '',
-sizes: product?.sizes || [],
-colors: product?.colors || []
-});
+    originalPrice: product?.originalPrice || '',
+    salePrice: product?.salePrice || '',
+    category: product?.category || '',
+    sizes: product?.sizes || [],
+    colors: product?.colors || []
+  });
 
 const categories = ['t-shirt', 'pants', 'cap', 'zip-up', 'hoodies', 'polo shirts'];
 
