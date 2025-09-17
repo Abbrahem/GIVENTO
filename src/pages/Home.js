@@ -9,13 +9,13 @@ const Home = () => {
   const [latestProduct, setLatestProduct] = useState(null);
 
   const categories = [
+    { name: 'Hoodies', image: '/t-shirt.JPG', slug: 'hoodies' },
+    { name: 'Polo Shirts', image: '/1polor.jpg', slug: 'polo shirts' },
     { name: 'T-Shirt', image: '/t-shirt.JPG', slug: 't-shirt' },
     { name: 'Pants', image: '/pantss.JPG', slug: 'pants' },
-    { name: 'Shorts', image: '/pantss.JPG', slug: 'shorts' },
     { name: 'Cap', image: '/t-shirt.JPG', slug: 'cap' },
     { name: 'Zip-up', image: '/t-shirt.JPG', slug: 'zip-up' },
-    { name: 'Hoodies', image: '/t-shirt.JPG', slug: 'hoodies' },
-    { name: 'Polo Shirts', image: '/t-shirt.JPG', slug: 'polo shirts' }
+    { name: 'Shorts', image: '/1short.JPEG', slug: 'shorts' }
   ];
 
   useEffect(() => {
