@@ -527,20 +527,65 @@ const handler = async (req, res) => {
         
         try {
           console.log('📊 Querying orders from database...');
-          const orders = await Order.find()
-            .populate('items.product', 'name images')
-            .sort({ createdAt: -1 });
+          
+          // First try without populate to see if that's the issue
+          let orders;
+          try {
+            console.log('🔍 Trying to fetch orders without populate...');
+            orders = await Order.find().sort({ createdAt: -1 }).limit(50);
+            console.log('✅ Orders fetched without populate:', orders.length);
+          } catch (basicError) {
+            console.error('❌ Even basic order fetch failed:', basicError);
+            return res.status(500).json({ 
+              message: 'Database connection error', 
+              error: basicError.message
+            });
+          }
+          
+          // Now try to populate if basic fetch worked
+          try {
+            console.log('🔍 Trying to populate orders...');
+            orders = await Order.find()
+              .populate('items.product', 'name images')
+              .sort({ createdAt: -1 })
+              .limit(50);
+            console.log('✅ Orders populated successfully:', orders.length);
+          } catch (populateError) {
+            console.log('⚠️ Populate failed, using orders without populate:', populateError.message);
+            // Use the orders we got without populate
+          }
           
           console.log('📊 Raw orders count:', orders.length);
-          console.log('📊 Sample order IDs:', orders.slice(0, 3).map(o => o._id));
           
-          // Filter out orders with invalid IDs
+          // Filter out orders with invalid IDs and prepare response
           const validOrders = orders.filter(order => {
             const isValid = mongoose.Types.ObjectId.isValid(order._id);
             if (!isValid) {
               console.log('❌ Invalid order ID found:', order._id);
             }
             return isValid;
+          }).map(order => {
+            // Clean up the order object to avoid any serialization issues
+            return {
+              _id: order._id,
+              customerName: order.customerName,
+              customerPhone: order.customerPhone,
+              alternatePhone: order.alternatePhone,
+              customerAddress: order.customerAddress,
+              items: order.items.map(item => ({
+                product: item.product,
+                productName: item.productName,
+                price: item.price,
+                quantity: item.quantity,
+                size: item.size,
+                color: item.color,
+                image: item.image
+              })),
+              totalAmount: order.totalAmount,
+              status: order.status,
+              createdAt: order.createdAt,
+              updatedAt: order.updatedAt
+            };
           });
           
           console.log('✅ Valid orders count:', validOrders.length);
@@ -554,7 +599,7 @@ const handler = async (req, res) => {
           return res.status(500).json({ 
             message: 'Error fetching orders', 
             error: error.message,
-            stack: error.stack
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
           });
         }
       }
@@ -826,6 +871,41 @@ const handler = async (req, res) => {
         method: req.method,
         timestamp: new Date().toISOString()
       });
+    }
+
+    // Simple orders test endpoint
+    if (pathname === '/api/test-orders-simple') {
+      if (req.method === 'GET') {
+        console.log('🧪 Simple orders test...');
+        
+        // Check authentication
+        const auth = authenticateAdmin(req);
+        if (!auth.isValid) {
+          return res.status(401).json({ 
+            message: auth.error, 
+            code: auth.code || 'AUTH_FAILED',
+            requiresLogin: true 
+          });
+        }
+        
+        try {
+          // Just count orders
+          const count = await Order.countDocuments();
+          console.log('📊 Orders count:', count);
+          
+          return res.json({
+            message: 'Simple orders test successful',
+            ordersCount: count,
+            timestamp: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('❌ Simple orders test error:', error);
+          return res.status(500).json({
+            message: 'Simple orders test failed',
+            error: error.message
+          });
+        }
+      }
     }
 
     // Test ObjectId validation
