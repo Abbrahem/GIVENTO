@@ -19,11 +19,28 @@ const ManageOrders = () => {
           'Authorization': `Bearer ${token}`
         }
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setOrders(Array.isArray(data) ? data : []);
+      
+      // Filter out orders with invalid IDs on frontend as well
+      const validOrders = Array.isArray(data) ? data.filter(order => 
+        order._id && order._id.length === 24 && /^[0-9a-fA-F]{24}$/.test(order._id)
+      ) : [];
+      
+      setOrders(validOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
       setOrders([]);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to load orders. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#b71c1c'
+      });
     } finally {
       setLoading(false);
     }
@@ -108,6 +125,52 @@ const ManageOrders = () => {
     }
   };
 
+  const cleanupInvalidOrders = async () => {
+    const result = await Swal.fire({
+      title: 'Clean Database?',
+      text: 'This will remove all orders with invalid IDs. This action cannot be undone!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, clean it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const response = await fetch(getApiUrl('/api/orders/cleanup'), {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          fetchOrders(); // Refresh orders
+          Swal.fire({
+            title: 'Cleanup Complete!',
+            text: `${data.deletedCount} invalid orders were removed from the database.`,
+            icon: 'success',
+            confirmButtonColor: '#b71c1c'
+          });
+        } else {
+          throw new Error('Failed to cleanup database');
+        }
+      } catch (error) {
+        console.error('Error cleaning up orders:', error);
+        Swal.fire({
+          title: 'Error!',
+          text: 'Failed to cleanup database. Please try again.',
+          icon: 'error',
+          confirmButtonColor: '#b71c1c'
+        });
+      }
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
@@ -142,8 +205,19 @@ const ManageOrders = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800 font-cairo">Manage Orders</h2>
-        <div className="text-sm text-gray-600">
-          Total Orders: {orders.length}
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-600">
+            Total Orders: {orders.length}
+          </div>
+          <button
+            onClick={cleanupInvalidOrders}
+            className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Clean Database
+          </button>
         </div>
       </div>
 
