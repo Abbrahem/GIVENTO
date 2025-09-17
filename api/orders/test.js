@@ -1,5 +1,36 @@
 const mongoose = require('mongoose');
 
+// Define Order Schema
+const OrderSchema = new mongoose.Schema({
+  customerName: { type: String, required: true },
+  customerPhone: { type: String, required: true },
+  alternatePhone: { type: String },
+  customerAddress: { type: String, required: true },
+  items: [{
+    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    productName: { type: String, required: true },
+    price: { type: Number, required: true },
+    quantity: { type: Number, required: true },
+    size: String,
+    color: String,
+    image: String
+  }],
+  totalAmount: { type: Number, required: true },
+  status: {
+    type: String,
+    enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
+  }
+}, { timestamps: true });
+
+// Register Order model
+let Order;
+try {
+  Order = mongoose.model('Order');
+} catch {
+  Order = mongoose.model('Order', OrderSchema);
+}
+
 const handler = async (req, res) => {
   console.log('🔍 Request received:', req.method);
   
@@ -25,7 +56,7 @@ const handler = async (req, res) => {
     }
 
     // Simple query to test connection
-    const count = await mongoose.model('Order').countDocuments();
+    const count = await Order.countDocuments();
     
     return res.json({
       success: true,
