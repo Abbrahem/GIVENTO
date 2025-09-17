@@ -4,24 +4,42 @@ const jwt = require('jsonwebtoken');
 
 // Database connection with error handling
 const connectDB = async () => {
-  if (mongoose.connection.readyState === 1) {
-    console.log('✅ MongoDB already connected');
-    return;
-  }
-
   try {
+    console.log('🔍 Current MongoDB state:', mongoose.connection.readyState);
+    console.log('🔑 MONGODB_URI exists:', !!process.env.MONGODB_URI);
+    if (process.env.MONGODB_URI) {
+      console.log('🔑 MONGODB_URI length:', process.env.MONGODB_URI.length);
+      console.log('🔑 MONGODB_URI preview:', process.env.MONGODB_URI.substring(0, 20) + '...');
+    }
+
+    if (mongoose.connection.readyState === 1) {
+      console.log('✅ MongoDB already connected');
+      return;
+    }
+
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+
     console.log('🔌 Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
     console.log('✅ MongoDB connected successfully');
+    console.log('📊 Connection details:', {
+      host: mongoose.connection.host,
+      port: mongoose.connection.port,
+      name: mongoose.connection.name
+    });
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    throw error;
+    console.error('❌ MongoDB connection error:', error.message);
+    console.error('❌ Full error:', error);
+    throw new Error(`Database connection failed: ${error.message}`);
   }
 };
 
+// Authentication middleware
 const authenticateAdmin = (req) => {
   try {
     console.log('🔐 Authenticating admin...');
@@ -49,7 +67,7 @@ const authenticateAdmin = (req) => {
   }
 };
 
-// Parse request body for POST/PUT requests
+// Parse request body
 const parseBody = async (req) => {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -71,6 +89,7 @@ const parseBody = async (req) => {
   });
 };
 
+// Main handler
 const handler = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -82,43 +101,43 @@ const handler = async (req, res) => {
   }
 
   try {
-    // Ensure database is connected
+    // Connect to database
     await connectDB();
-
+    
     // Get path from URL
     const path = req.url;
     console.log('🔍 Request path:', path);
 
-  // Parse body for POST/PUT requests
-  if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type']?.includes('application/json')) {
-    try {
-      req.body = await parseBody(req);
-    } catch (error) {
-      return res.status(400).json({ message: 'Invalid JSON in request body' });
+    // Parse body for POST/PUT requests
+    if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type']?.includes('application/json')) {
+      try {
+        req.body = await parseBody(req);
+      } catch (error) {
+        return res.status(400).json({ message: 'Invalid JSON in request body' });
+      }
     }
-  }
 
-  // Match the exact path for order status updates
-  const statusMatch = path.match(/^\/api\/orders\/([^/]+)\/status$/);
-  // Match the exact path for order deletion
-  const deleteMatch = path.match(/^\/api\/orders\/([^/]+)$/);
-  // Match cleanup path
-  const isCleanup = path === '/api/orders/cleanup';
+    // Match routes
+    const statusMatch = path.match(/^\/api\/orders\/([^/]+)\/status$/);
+    const deleteMatch = path.match(/^\/api\/orders\/([^/]+)$/);
+    const isCleanup = path === '/api/orders/cleanup';
 
-  try {
     // Get orders list
     if (path === '/api/orders' && req.method === 'GET') {
+      console.log('🔍 Starting GET /api/orders...');
       const auth = authenticateAdmin(req);
       if (!auth.isValid) {
         return res.status(401).json({ message: auth.error });
       }
 
+      console.log('📋 Fetching orders...');
       const orders = await Order.find()
         .select('customerName customerPhone customerAddress items totalAmount status createdAt')
         .populate('items.product', 'name images')
         .sort({ createdAt: -1 })
         .lean();
 
+      console.log(`✅ Found ${orders.length} orders`);
       return res.json({
         success: true,
         count: orders.length,
@@ -128,6 +147,7 @@ const handler = async (req, res) => {
 
     // Create new order
     if (path === '/api/orders' && req.method === 'POST') {
+      console.log('📝 Creating new order...');
       const { customerName, customerPhone, customerAddress, items, totalAmount } = req.body;
 
       if (!customerName || !customerPhone || !customerAddress || !items || !totalAmount) {
@@ -147,7 +167,7 @@ const handler = async (req, res) => {
 
       await order.save();
       await order.populate('items.product', 'name images');
-
+      console.log('✅ Order created successfully');
       return res.status(201).json(order);
     }
 
@@ -165,6 +185,7 @@ const handler = async (req, res) => {
         return res.status(400).json({ message: 'Invalid status value' });
       }
 
+      console.log(`📝 Updating order ${orderId} status to ${status}...`);
       const order = await Order.findByIdAndUpdate(
         orderId,
         { status },
@@ -175,6 +196,7 @@ const handler = async (req, res) => {
         return res.status(404).json({ message: 'Order not found' });
       }
 
+      console.log('✅ Order status updated successfully');
       return res.json(order);
     }
 
@@ -186,12 +208,14 @@ const handler = async (req, res) => {
       }
 
       const orderId = deleteMatch[1];
+      console.log(`🗑️ Deleting order ${orderId}...`);
       const order = await Order.findByIdAndDelete(orderId);
 
       if (!order) {
         return res.status(404).json({ message: 'Order not found' });
       }
 
+      console.log('✅ Order deleted successfully');
       return res.json({ message: 'Order deleted successfully' });
     }
 
@@ -202,6 +226,7 @@ const handler = async (req, res) => {
         return res.status(401).json({ message: auth.error });
       }
 
+      console.log('🧹 Starting orders cleanup...');
       const orders = await Order.find();
       let deletedCount = 0;
 
@@ -212,6 +237,7 @@ const handler = async (req, res) => {
         }
       }
 
+      console.log(`✅ Cleanup completed. Deleted ${deletedCount} orders`);
       return res.json({ 
         message: 'Cleanup completed', 
         deletedCount 
@@ -220,8 +246,30 @@ const handler = async (req, res) => {
 
     return res.status(404).json({ message: 'Endpoint not found' });
   } catch (error) {
-    console.error('Error handling request:', error);
-    return res.status(500).json({ message: 'Internal server error', error: error.message });
+    console.error('❌ Error handling request:', error.message);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error stack:', error.stack);
+    
+    if (error.message.includes('MONGODB_URI')) {
+      return res.status(500).json({
+        message: 'Database configuration error',
+        error: 'Missing or invalid database connection string'
+      });
+    }
+
+    if (error.name === 'MongooseError' || error.name === 'MongoError') {
+      return res.status(500).json({
+        message: 'Database operation failed',
+        error: error.message
+      });
+    }
+
+    return res.status(500).json({ 
+      message: 'Internal server error', 
+      error: error.message,
+      type: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
