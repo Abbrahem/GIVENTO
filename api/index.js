@@ -161,7 +161,12 @@ const authenticateAdmin = (req) => {
     return { isValid: true, user: decoded.user };
   } catch (error) {
     console.log('❌ Token verification failed:', error.message);
-    return { isValid: false, error: 'Invalid token' };
+    if (error.name === 'TokenExpiredError') {
+      return { isValid: false, error: 'Token expired', code: 'TOKEN_EXPIRED' };
+    } else if (error.name === 'JsonWebTokenError') {
+      return { isValid: false, error: 'Invalid token', code: 'INVALID_TOKEN' };
+    }
+    return { isValid: false, error: 'Token verification failed', code: 'TOKEN_ERROR' };
   }
 };
 
@@ -474,7 +479,7 @@ const handler = async (req, res) => {
         
         console.log('📦 JWT Payload:', payload);
         
-        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }, (err, token) => {
+        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }, (err, token) => {
           if (err) {
             console.error('❌ JWT signing error:', err);
             return res.status(500).json({ message: 'Failed to create token' });
@@ -501,19 +506,33 @@ const handler = async (req, res) => {
         const auth = authenticateAdmin(req);
         if (!auth.isValid) {
           console.log('❌ Authentication failed:', auth.error);
-          return res.status(401).json({ message: auth.error });
+          // Return specific error for token expiration
+          return res.status(401).json({ 
+            message: auth.error, 
+            code: auth.code || 'AUTH_FAILED',
+            requiresLogin: true 
+          });
         }
         
-        const orders = await Order.find()
-          .populate('items.product', 'name images')
-          .sort({ createdAt: -1 });
-        
-        // Filter out orders with invalid IDs
-        const validOrders = orders.filter(order => {
-          return mongoose.Types.ObjectId.isValid(order._id);
-        });
-        
-        return res.json(validOrders);
+        try {
+          const orders = await Order.find()
+            .populate('items.product', 'name images')
+            .sort({ createdAt: -1 });
+          
+          // Filter out orders with invalid IDs
+          const validOrders = orders.filter(order => {
+            return mongoose.Types.ObjectId.isValid(order._id);
+          });
+          
+          console.log('✅ Found orders:', validOrders.length);
+          return res.json(validOrders);
+        } catch (error) {
+          console.error('❌ Error fetching orders:', error);
+          return res.status(500).json({ 
+            message: 'Error fetching orders', 
+            error: error.message 
+          });
+        }
       }
       if (req.method === 'POST') {
         const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;

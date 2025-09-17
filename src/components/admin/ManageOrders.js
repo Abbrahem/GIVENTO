@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../../config/api';
 import { getImageUrl } from '../../utils/imageUtils';
+import { makeAuthenticatedRequest, getValidToken } from '../../utils/auth';
 
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -13,58 +14,30 @@ const ManageOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      console.log('Admin token:', token ? 'Token exists' : 'No token found');
+      console.log('🔍 Fetching orders...');
       
-      if (!token) {
-        console.error('No admin token found');
-        Swal.fire({
-          title: 'Authentication Required!',
-          text: 'Please login as admin first.',
-          icon: 'warning',
-          confirmButtonColor: '#b71c1c'
-        });
-        setOrders([]);
-        return;
-      }
+      const result = await makeAuthenticatedRequest(getApiUrl(API_ENDPOINTS.ORDERS));
       
-      const response = await fetch(getApiUrl(API_ENDPOINTS.ORDERS), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      if (!result.success) {
+        if (result.requiresLogin) {
+          setOrders([]);
+          return;
         }
-      });
-      
-      console.log('Response status:', response.status);
-      
-      if (response.status === 401) {
-        console.error('Unauthorized - token might be expired');
-        localStorage.removeItem('adminToken');
-        Swal.fire({
-          title: 'Session Expired!',
-          text: 'Please login again.',
-          icon: 'warning',
-          confirmButtonColor: '#b71c1c'
-        });
-        setOrders([]);
-        return;
+        throw new Error('Failed to fetch orders');
       }
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Orders data:', data);
+      const data = await result.response.json();
+      console.log('📊 Orders data:', data);
       
       // Filter out orders with invalid IDs on frontend as well
       const validOrders = Array.isArray(data) ? data.filter(order => 
         order._id && order._id.length === 24 && /^[0-9a-fA-F]{24}$/.test(order._id)
       ) : [];
       
+      console.log('✅ Valid orders found:', validOrders.length);
       setOrders(validOrders);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('❌ Error fetching orders:', error);
       setOrders([]);
       Swal.fire({
         title: 'Error!',
@@ -79,17 +52,12 @@ const ManageOrders = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(getApiUrl(`${API_ENDPOINTS.ORDER_BY_ID(orderId)}/status`), {
+      const result = await makeAuthenticatedRequest(getApiUrl(`${API_ENDPOINTS.ORDER_BY_ID(orderId)}/status`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ status: newStatus })
       });
 
-      if (response.ok) {
+      if (result.success) {
         fetchOrders(); // Refresh orders
         Swal.fire({
           title: 'Success!',
@@ -97,6 +65,8 @@ const ManageOrders = () => {
           icon: 'success',
           confirmButtonColor: '#b71c1c'
         });
+      } else if (result.requiresLogin) {
+        return; // Auth utility already showed the message
       } else {
         throw new Error('Failed to update order status');
       }
@@ -125,15 +95,11 @@ const ManageOrders = () => {
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem('adminToken');
-        const response = await fetch(getApiUrl(API_ENDPOINTS.ORDER_BY_ID(orderId)), {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const deleteResult = await makeAuthenticatedRequest(getApiUrl(API_ENDPOINTS.ORDER_BY_ID(orderId)), {
+          method: 'DELETE'
         });
 
-        if (response.ok) {
+        if (deleteResult.success) {
           fetchOrders(); // Refresh orders
           Swal.fire({
             title: 'Deleted!',
@@ -141,6 +107,8 @@ const ManageOrders = () => {
             icon: 'success',
             confirmButtonColor: '#b71c1c'
           });
+        } else if (deleteResult.requiresLogin) {
+          return; // Auth utility already showed the message
         } else {
           throw new Error('Failed to delete order');
         }
@@ -170,16 +138,12 @@ const ManageOrders = () => {
 
     if (result.isConfirmed) {
       try {
-        const token = localStorage.getItem('adminToken');
-        const response = await fetch(getApiUrl('/api/orders/cleanup'), {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const cleanupResult = await makeAuthenticatedRequest(getApiUrl('/api/orders/cleanup'), {
+          method: 'DELETE'
         });
 
-        if (response.ok) {
-          const data = await response.json();
+        if (cleanupResult.success) {
+          const data = await cleanupResult.response.json();
           fetchOrders(); // Refresh orders
           Swal.fire({
             title: 'Cleanup Complete!',
@@ -187,6 +151,8 @@ const ManageOrders = () => {
             icon: 'success',
             confirmButtonColor: '#b71c1c'
           });
+        } else if (cleanupResult.requiresLogin) {
+          return; // Auth utility already showed the message
         } else {
           throw new Error('Failed to cleanup database');
         }
