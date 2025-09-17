@@ -34,20 +34,25 @@ try {
 let cachedConnection = null;
 
 const connectDB = async () => {
-  if (cachedConnection) {
-    return cachedConnection;
-  }
-  
   try {
-    console.log('Attempting MongoDB connection...');
-    if (!process.env.MONGODB_URI) {
-      console.error('MONGODB_URI is not defined!');
-      throw new Error('MongoDB connection string is missing');
+    if (mongoose.connection.readyState === 1) {
+      console.log('✅ Using existing MongoDB connection');
+      return mongoose.connection;
     }
-    const connection = await mongoose.connect(process.env.MONGODB_URI, {
+
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not defined');
+    }
+
+    console.log('🔄 Connecting to MongoDB...');
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000
     });
+
+    console.log('✅ MongoDB connected successfully');
+    return mongoose.connection;
     cachedConnection = connection;
     return connection;
   } catch (error) {
