@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+require('./models/Product'); // Import Product model
 
 // Order Schema
 const OrderSchema = new mongoose.Schema({
