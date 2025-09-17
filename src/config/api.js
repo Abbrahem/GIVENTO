@@ -11,6 +11,7 @@ const API_ENDPOINTS = {
   // Auth endpoints
   LOGIN: '/api/auth/login',
   REGISTER: '/api/auth/register',
+  CREATE_ADMIN: '/api/auth/create-admin',
   
   // Product endpoints
   PRODUCTS: '/api/products',

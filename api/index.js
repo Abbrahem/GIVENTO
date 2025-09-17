@@ -332,6 +332,41 @@ const handler = async (req, res) => {
       }
     }
 
+    // Create admin user endpoint (for testing)
+    if (pathname === '/api/auth/create-admin') {
+      if (req.method === 'POST') {
+        console.log('🔧 Creating admin user...');
+        
+        const { email, password, name } = req.body;
+        
+        // Check if admin already exists
+        let existingUser = await User.findOne({ email });
+        if (existingUser) {
+          return res.status(400).json({ message: 'Admin user already exists' });
+        }
+        
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        
+        // Create admin user
+        const adminUser = new User({
+          name,
+          email,
+          password: hashedPassword,
+          isAdmin: true
+        });
+        
+        await adminUser.save();
+        console.log('✅ Admin user created successfully');
+        
+        return res.status(201).json({ 
+          message: 'Admin user created successfully',
+          user: { id: adminUser.id, name: adminUser.name, email: adminUser.email, isAdmin: adminUser.isAdmin }
+        });
+      }
+    }
+
     // Auth endpoints
     if (pathname === '/api/auth/login') {
       if (req.method === 'POST') {
@@ -726,6 +761,7 @@ const handler = async (req, res) => {
         'PUT /api/products/:id',
         'DELETE /api/products/:id',
         'PUT /api/products/:id/toggle',
+        'POST /api/auth/create-admin',
         'POST /api/auth/login',
         'GET /api/orders',
         'POST /api/orders',
