@@ -267,6 +267,7 @@ const handler = async (req, res) => {
     console.log('🔍 Parsed pathname:', pathname);
     console.log('🔍 Query params:', query);
     console.log('🌐 Environment:', process.env.NODE_ENV || 'development');
+    console.log('🔍 Headers:', JSON.stringify(req.headers, null, 2));
     
     // Test all regex patterns
     console.log('🧪 Testing regex patterns for:', pathname);
@@ -541,9 +542,15 @@ const handler = async (req, res) => {
       }
     }
 
+    // Check if this is an orders-related request
+    console.log('🔍 Checking if pathname matches orders routes...');
+    console.log('  - pathname === "/api/orders":', pathname === '/api/orders');
+    console.log('  - pathname.startsWith("/api/orders"):', pathname.startsWith('/api/orders'));
+    
     // Orders endpoints (temporary - until separate files are deployed)
     if (pathname === '/api/orders') {
-      console.log('🎯 Matched /api/orders route, method:', req.method);
+      console.log('🎯 MATCHED /api/orders route, method:', req.method);
+      console.log('🎯 This should handle POST requests for order creation');
       
       if (req.method === 'GET') {
         console.log('🔍 Getting orders - starting process');
@@ -971,6 +978,25 @@ const handler = async (req, res) => {
         pathname,
         method: req.method,
         timestamp: new Date().toISOString()
+      });
+    }
+
+    // Test POST endpoint specifically for debugging
+    if (pathname === '/api/test-post') {
+      if (req.method === 'POST') {
+        console.log('✅ POST test endpoint hit successfully');
+        console.log('📦 Body:', req.body);
+        return res.json({
+          message: 'POST test successful!',
+          receivedBody: req.body,
+          method: req.method,
+          pathname,
+          timestamp: new Date().toISOString()
+        });
+      }
+      return res.status(405).json({
+        message: 'Only POST method allowed for this test endpoint',
+        method: req.method
       });
     }
 
