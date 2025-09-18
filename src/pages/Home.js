@@ -9,7 +9,7 @@ const Home = () => {
   const [latestProduct, setLatestProduct] = useState(null);
 
   const categories = [
-    { name: 'Polo Shirts', image: '/1polor.jpg', slug: 'polo shirts' },
+    { name: 'Polo Shirts', image: '/1polor.jpg', slug: 'polo t-shirt' },
     { name: 'T-Shirt', image: '/t-shirt.JPG', slug: 't-shirt' },
     { name: 'Hoodies', image: '/1hoodies.JPG', slug: 'hoodies' },
     { name: 'Zip-up', image: '/1zip-up.jpg', slug: 'zip-up' },

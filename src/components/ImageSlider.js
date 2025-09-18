@@ -13,35 +13,35 @@ const ImageSlider = () => {
       id: 1,
       title: 'T-Shirt Collection',
       image: '/t-shirt.JPG',
-      buttonText: 'Shop Now',
+      buttonText: 'What’s New',
       link: '/category/t-shirt'
     },
     {
       id: 2,
       title: 'Winter Collection',
       image: '/hero.webp',
-      buttonText: 'Shop Now',
+      buttonText: 'What’s New',
       link: '/category/hoodies'
     },
     {
       id: 3,
       title: 'Polo Shirts Collection',
       image: '/1polor.jpg',
-      buttonText: 'Shop Now',
+      buttonText: 'What’s New',
       link: '/category/polo shirts'
     },
     {
       id: 4,
       title: 'Pants Collection',
       image: '/hero.webp',
-      buttonText: 'Shop Now',
+      buttonText: 'What’s New',
       link: '/category/pants'
     },
     {
       id: 5,
       title: 'Zip-up Collection',
       image: '/hero.webp',
-      buttonText: 'Shop Now',
+      buttonText: 'What’s New',
       link: '/category/zip-up'
     }
   ];
