@@ -236,7 +236,16 @@ const handler = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   
+  // Log every request for debugging
+  console.log('🚨 INCOMING REQUEST:', {
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    timestamp: new Date().toISOString()
+  });
+  
   if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS request handled');
     return res.status(200).end();
   }
 
@@ -545,10 +554,11 @@ const handler = async (req, res) => {
     // Check if this is an orders-related request
     console.log('🔍 Checking if pathname matches orders routes...');
     console.log('  - pathname === "/api/orders":', pathname === '/api/orders');
+    console.log('  - pathname === "/api/orders/":', pathname === '/api/orders/');
     console.log('  - pathname.startsWith("/api/orders"):', pathname.startsWith('/api/orders'));
     
     // Orders endpoints (temporary - until separate files are deployed)
-    if (pathname === '/api/orders') {
+    if (pathname === '/api/orders' || pathname === '/api/orders/') {
       console.log('🎯 MATCHED /api/orders route, method:', req.method);
       console.log('🎯 This should handle POST requests for order creation');
       
@@ -1117,6 +1127,63 @@ const handler = async (req, res) => {
       }
     }
 
+    // EMERGENCY ORDERS FALLBACK - Handle orders requests that didn't match above
+    if (pathname.includes('/api/orders') && req.method === 'POST') {
+      console.log('🚨 EMERGENCY ORDERS FALLBACK - POST request to orders endpoint');
+      console.log('🚨 This should have been handled above, but trying fallback...');
+      
+      try {
+        const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;
+        
+        console.log('🔍 FALLBACK - Extracted fields:');
+        console.log('  - customerName:', customerName);
+        console.log('  - customerPhone:', customerPhone);
+        console.log('  - customerAddress:', customerAddress);
+        console.log('  - items count:', items ? items.length : 'undefined');
+        console.log('  - totalAmount:', totalAmount);
+        
+        // Validate required fields
+        if (!customerName || !customerPhone || !customerAddress || !items || !totalAmount) {
+          console.log('❌ FALLBACK - Missing required fields');
+          return res.status(400).json({ 
+            message: 'Missing required fields: customerName, customerPhone, customerAddress, items, totalAmount',
+            received: { customerName, customerPhone, customerAddress, items: !!items, totalAmount }
+          });
+        }
+        
+        if (!Array.isArray(items) || items.length === 0) {
+          console.log('❌ FALLBACK - Invalid items array');
+          return res.status(400).json({ message: 'Items must be a non-empty array' });
+        }
+        
+        console.log('✅ FALLBACK - All required fields validated');
+        
+        const order = new Order({
+          customerName,
+          customerPhone,
+          alternatePhone: alternatePhone || '',
+          customerAddress,
+          items,
+          totalAmount: parseFloat(totalAmount),
+          status: 'pending'
+        });
+        
+        console.log('💾 FALLBACK - Saving order to database...');
+        await order.save();
+        console.log('✅ FALLBACK - Order saved with ID:', order._id);
+        
+        console.log('✅ FALLBACK - Order created successfully');
+        return res.status(201).json(order);
+        
+      } catch (error) {
+        console.error('❌ FALLBACK - Error creating order:', error);
+        return res.status(500).json({ 
+          message: 'Failed to create order (fallback)', 
+          error: error.message
+        });
+      }
+    }
+
     // CATCH ALL - Log everything that doesn't match
     console.log('❌ Route not found:', pathname);
     console.log('🔍 Request method:', req.method);
@@ -1131,6 +1198,14 @@ const handler = async (req, res) => {
       console.log('  - split length:', pathname.split('/').length);
       console.log('  - is not latest:', pathname !== '/api/products/latest');
       console.log('  - split parts:', pathname.split('/'));
+    }
+    
+    // Check if it's an orders route that should have matched
+    if (pathname.includes('/api/orders')) {
+      console.log('🚨 This looks like an orders route that should have matched!');
+      console.log('  - pathname === "/api/orders":', pathname === '/api/orders');
+      console.log('  - pathname.startsWith("/api/orders"):', pathname.startsWith('/api/orders'));
+      console.log('  - method:', req.method);
     }
     
     console.log('🔍 Available routes checked:');
