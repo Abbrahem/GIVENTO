@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import { getImageUrl } from '../utils/imageUtils';
+import ProductImageSlider from '../components/ProductImageSlider';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -12,7 +13,6 @@ const ProductDetail = () => {
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity] = useState(1);
@@ -195,34 +195,11 @@ const ProductDetail = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Left Column - Images */}
-          <div className="space-y-4">
-            {/* Main Image */}
-            <div className="aspect-square overflow-hidden bg-gray-100 rounded-lg">
-              <img
-                src={getImageUrl(product.images[selectedImage])}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Thumbnail Images */}
-            <div className="flex space-x-2 overflow-x-auto">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`flex-shrink-0 w-20 h-20 overflow-hidden border-2 rounded-lg transition-colors ${
-                    selectedImage === index ? 'border-primary' : 'border-gray-200'
-                  }`}
-                >
-                  <img
-                    src={getImageUrl(image)}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+          <div>
+            <ProductImageSlider 
+              images={product.images} 
+              productName={product.name} 
+            />
           </div>
 
           {/* Right Column - Product Info */}

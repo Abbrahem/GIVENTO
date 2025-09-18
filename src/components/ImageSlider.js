@@ -19,7 +19,7 @@ const ImageSlider = () => {
     {
       id: 2,
       title: 'Winter Collection',
-      image: '/hero.webp',
+      image: '/1hoodies.JPG',
       buttonText: 'What’s New',
       link: '/category/hoodies'
     },
@@ -33,7 +33,7 @@ const ImageSlider = () => {
     {
       id: 4,
       title: 'Pants Collection',
-      image: '/hero.webp',
+      image: '/pantss.JPG',
       buttonText: 'What’s New',
       link: '/category/pants'
     },

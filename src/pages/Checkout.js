@@ -34,16 +34,16 @@ const Checkout = () => {
       const orderData = {
         customerName: formData.name,
         customerPhone: formData.phone,
-        alternatePhone: formData.alternatePhone || '',
+        customerPhone2: formData.alternatePhone || '',
         customerAddress: formData.address,
         items: items.map(item => ({
           product: item.id,
           productName: item.title,
+          productImage: item.image,
           quantity: item.quantity,
-          size: item.size,
-          color: item.color,
-          price: item.price,
-          image: item.image
+          size: item.size || '',
+          color: item.color || '',
+          price: item.price
         })),
         totalAmount: total
       };
