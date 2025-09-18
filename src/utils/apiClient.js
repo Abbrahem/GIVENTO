@@ -63,6 +63,7 @@ export const api = {
   
   // Orders endpoints
   getOrders: () => apiClient.get('/api/orders'),
+  createOrder: (orderData) => apiClient.post('/api/orders', orderData),
   getOrder: (id) => apiClient.get(`/api/orders/${id}`),
   updateOrderStatus: (id, status) => apiClient.put(`/api/orders/${id}/status`, { status }),
   deleteOrder: (id) => apiClient.delete(`/api/orders/${id}`),

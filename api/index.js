@@ -251,11 +251,15 @@ const handler = async (req, res) => {
     if ((req.method === 'POST' || req.method === 'PUT') && req.headers['content-type']?.includes('application/json')) {
       try {
         req.body = await parseBody(req);
-        console.log('📦 Parsed request body:', req.body);
+        console.log('📦 Parsed request body keys:', Object.keys(req.body || {}));
+        console.log('📦 Request body size:', JSON.stringify(req.body).length);
       } catch (error) {
         console.error('❌ Failed to parse request body:', error);
         return res.status(400).json({ message: 'Invalid JSON in request body' });
       }
+    } else if (req.method === 'POST' || req.method === 'PUT') {
+      console.log('⚠️ POST/PUT request without JSON content-type:', req.headers['content-type']);
+      req.body = {};
     }
     const { pathname, query } = parse(req.url, true);
     console.log('🚀 API Request:', req.method, pathname);
@@ -539,6 +543,8 @@ const handler = async (req, res) => {
 
     // Orders endpoints (temporary - until separate files are deployed)
     if (pathname === '/api/orders') {
+      console.log('🎯 Matched /api/orders route, method:', req.method);
+      
       if (req.method === 'GET') {
         console.log('🔍 Getting orders - starting process');
         
@@ -581,26 +587,42 @@ const handler = async (req, res) => {
           });
         }
       }
+      
       if (req.method === 'POST') {
+        console.log('📝 POST /api/orders - Creating new order...');
+        console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
+        console.log('📋 Content-Type:', req.headers['content-type']);
+        
         try {
-          console.log('📝 Creating new order...');
           const { customerName, customerPhone, alternatePhone, customerAddress, items, totalAmount } = req.body;
+          
+          console.log('🔍 Extracted fields:');
+          console.log('  - customerName:', customerName);
+          console.log('  - customerPhone:', customerPhone);
+          console.log('  - customerAddress:', customerAddress);
+          console.log('  - items count:', items ? items.length : 'undefined');
+          console.log('  - totalAmount:', totalAmount);
           
           // Validate required fields
           if (!customerName || !customerPhone || !customerAddress || !items || !totalAmount) {
+            console.log('❌ Missing required fields');
             return res.status(400).json({ 
-              message: 'Missing required fields: customerName, customerPhone, customerAddress, items, totalAmount' 
+              message: 'Missing required fields: customerName, customerPhone, customerAddress, items, totalAmount',
+              received: { customerName, customerPhone, customerAddress, items: !!items, totalAmount }
             });
           }
           
           if (!Array.isArray(items) || items.length === 0) {
+            console.log('❌ Invalid items array');
             return res.status(400).json({ message: 'Items must be a non-empty array' });
           }
+          
+          console.log('✅ All required fields validated');
           
           const order = new Order({
             customerName,
             customerPhone,
-            alternatePhone,
+            alternatePhone: alternatePhone || '',
             customerAddress,
             items,
             totalAmount: parseFloat(totalAmount),
@@ -608,12 +630,19 @@ const handler = async (req, res) => {
           });
           
           console.log('💾 Saving order to database...');
+          console.log('📋 Order object:', JSON.stringify(order.toObject(), null, 2));
+          
           await order.save();
           console.log('✅ Order saved with ID:', order._id);
           
-          // Populate the order with product details
-          console.log('📊 Populating product details...');
-          await order.populate('items.product', 'name images');
+          // Populate the order with product details (optional, may fail if product doesn't exist)
+          try {
+            console.log('📊 Attempting to populate product details...');
+            await order.populate('items.product', 'name images');
+            console.log('✅ Product details populated');
+          } catch (populateError) {
+            console.log('⚠️ Failed to populate product details (non-critical):', populateError.message);
+          }
           
           console.log('✅ Order created successfully');
           return res.status(201).json(order);
@@ -628,6 +657,13 @@ const handler = async (req, res) => {
           });
         }
       }
+      
+      // If method is not GET or POST, return 405
+      console.log('❌ Method not allowed for /api/orders:', req.method);
+      return res.status(405).json({ 
+        message: `Method ${req.method} not allowed for /api/orders`,
+        allowedMethods: ['GET', 'POST']
+      });
     }
 
     // Update order status
