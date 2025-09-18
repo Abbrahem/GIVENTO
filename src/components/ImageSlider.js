@@ -158,15 +158,15 @@ const ImageSlider = () => {
                 {/* Dark Overlay */}
                 <div className="absolute inset-0 bg-black bg-opacity-40"></div>
                 
-                {/* Content */}
-                <div className="absolute inset-0 flex flex-col items-center text-center px-4" style={{ paddingTop: '60%' }}>
-                  <h2 className="text-4xl md:text-6xl font-bold text-white mb-12 font-cairo drop-shadow-lg">
+                {/* Content - Visible on all screen sizes */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6 md:mb-12 font-cairo drop-shadow-lg leading-tight">
                     {slide.title}
                   </h2>
                   
                   <Link 
                     to={slide.link}
-                    className="text-white text-lg font-cairo underline-none border-none bg-transparent hover:text-gray-200 transition-colors duration-200"
+                    className="text-white text-base md:text-lg font-cairo underline-none border-none bg-transparent hover:text-gray-200 transition-colors duration-200 mt-2"
                     style={{ textDecoration: 'none', border: 'none', outline: 'none' }}
                   >
                     {slide.buttonText}
