@@ -4,6 +4,8 @@ import { getImageUrl } from '../utils/imageUtils';
 const ProductImageSlider = ({ images, productName }) => {
   const [currentImage, setCurrentImage] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false); // Disabled by default for product images
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const sliderRef = useRef(null);
@@ -101,6 +103,14 @@ const ProductImageSlider = ({ images, productName }) => {
     }
   };
 
+  const handleImageClick = () => {
+    // Remove fullscreen functionality - keep images in place
+  };
+
+  const handleZoomToggle = () => {
+    setIsZoomed(!isZoomed);
+  };
+
   if (!images || images.length === 0) {
     return (
       <div className="aspect-square overflow-hidden bg-gray-100 rounded-lg flex items-center justify-center">
@@ -115,7 +125,8 @@ const ProductImageSlider = ({ images, productName }) => {
       <div className="relative">
         <div 
           ref={sliderRef}
-          className="aspect-square overflow-hidden bg-gray-100 rounded-lg cursor-grab select-none relative group"
+          className="overflow-hidden bg-gray-100 rounded-2xl cursor-grab select-none relative group shadow-xl"
+          style={{ height: '70vh', minHeight: '400px' }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -134,47 +145,21 @@ const ProductImageSlider = ({ images, productName }) => {
                 <img
                   src={getImageUrl(image)}
                   alt={`${productName} ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-contain transition-transform duration-300 group-hover:scale-105`}
                   draggable={false}
                 />
               </div>
             ))}
           </div>
 
-          {/* Navigation Arrows - Only show if more than 1 image */}
-          {images.length > 1 && (
-            <>
-              {/* Previous Arrow */}
-              <button
-                onClick={goToPrevious}
-                disabled={currentImage === 0}
-                className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center transition-all duration-300 ${
-                  currentImage === 0 
-                    ? 'opacity-30 cursor-not-allowed' 
-                    : 'hover:bg-opacity-75 opacity-0 group-hover:opacity-100'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+          {/* Swipe Indicator */}
+          <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded-full text-sm font-cairo opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l3-3m0 0l3 3m-3-3v6m0-6V4" />
+            </svg>
+            اسحب للتنقل
+          </div>
 
-              {/* Next Arrow */}
-              <button
-                onClick={goToNext}
-                disabled={currentImage === images.length - 1}
-                className={`absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center transition-all duration-300 ${
-                  currentImage === images.length - 1 
-                    ? 'opacity-30 cursor-not-allowed' 
-                    : 'hover:bg-opacity-75 opacity-0 group-hover:opacity-100'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </>
-          )}
 
           {/* Image Counter */}
           {images.length > 1 && (
@@ -202,28 +187,7 @@ const ProductImageSlider = ({ images, productName }) => {
         )}
       </div>
 
-      {/* Thumbnail Images - Only show if more than 1 image */}
-      {images.length > 1 && (
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {images.map((image, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentImage(index)}
-              className={`flex-shrink-0 w-20 h-20 overflow-hidden border-2 rounded-lg transition-all duration-300 ${
-                currentImage === index 
-                  ? 'border-primary shadow-lg scale-105' 
-                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-              }`}
-            >
-              <img
-                src={getImageUrl(image)}
-                alt={`${productName} thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      )}
+
     </div>
   );
 };
