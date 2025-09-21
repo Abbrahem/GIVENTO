@@ -35,8 +35,8 @@ const ProductImageSlider = ({ images, productName }) => {
     if (!touchStartX.current || !touchEndX.current) return;
 
     const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
+    const isLeftSwipe = distance > 80;
+    const isRightSwipe = distance < -80;
 
     if (isLeftSwipe && currentImage < images.length - 1) {
       setCurrentImage(prev => prev + 1);
@@ -74,8 +74,8 @@ const ProductImageSlider = ({ images, productName }) => {
     }
 
     const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
+    const isLeftSwipe = distance > 80;
+    const isRightSwipe = distance < -80;
 
     if (isLeftSwipe && currentImage < images.length - 1) {
       setCurrentImage(prev => prev + 1);
@@ -125,7 +125,7 @@ const ProductImageSlider = ({ images, productName }) => {
       <div className="relative">
         <div 
           ref={sliderRef}
-          className="overflow-hidden bg-gray-100 rounded-2xl cursor-pointer select-none relative group shadow-xl"
+          className="overflow-hidden bg-black rounded-2xl cursor-pointer select-none relative group shadow-xl"
           style={{ height: '75vh', minHeight: '450px' }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -138,28 +138,21 @@ const ProductImageSlider = ({ images, productName }) => {
         >
           {/* Image Container */}
           <div 
-            className="flex transition-transform duration-500 ease-in-out h-full"
+            className="flex transition-transform duration-500 ease-in-out h-full w-full"
             style={{ transform: `translateX(-${currentImage * 100}%)` }}
           >
             {images.map((image, index) => (
-              <div key={index} className="min-w-full h-full relative">
+              <div key={index} className="w-full h-full flex-shrink-0 flex items-center justify-center overflow-hidden">
                 <img
                   src={getImageUrl(image)}
                   alt={`${productName} ${index + 1}`}
-                  className={`w-full h-full object-contain transition-transform duration-300 group-hover:scale-105`}
+                  className={`max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105`}
                   draggable={false}
                 />
               </div>
             ))}
           </div>
 
-          {/* Click to Expand Indicator */}
-          <div className="absolute top-4 left-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-cairo opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg">
-            <svg className="w-4 h-4 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-            </svg>
-            انقر للتكبير
-          </div>
 
           {/* Beautiful Navigation Arrows */}
           {images.length > 1 && (
@@ -224,7 +217,7 @@ const ProductImageSlider = ({ images, productName }) => {
       {/* Beautiful Thumbnail Images */}
       {images.length > 1 && (
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-2xl shadow-inner">
-          <h4 className="text-center text-gray-600 font-cairo font-semibold mb-4">جميع الصور</h4>
+          <h4 className="text-center text-gray-600 font-semibold mb-4">All Photos</h4>
           <div className="flex space-x-4 overflow-x-auto pb-3 justify-center">
             {images.map((image, index) => (
               <button
@@ -288,13 +281,6 @@ const ProductImageSlider = ({ images, productName }) => {
                     </svg>
                   </button>
 
-                  {/* Zoom Indicator - Responsive */}
-                  <div className="absolute top-2 sm:top-4 left-2 sm:left-4 text-white px-2 sm:px-3 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-cairo opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/40 backdrop-blur-sm border border-white/20">
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isZoomed ? "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10h-3" : "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"} />
-                    </svg>
-                    <span className="hidden sm:inline">{isZoomed ? 'انقر للتصغير' : 'انقر للتكبير'}</span>
-                  </div>
 
                   {/* Responsive Navigation Arrows */}
                   {images.length > 1 && (
