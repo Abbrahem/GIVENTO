@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../../config/api';
-import { processMultipleFiles } from '../../utils/imageUtils';
 
 const AddProduct = () => {
   const [formData, setFormData] = useState({
@@ -83,14 +82,32 @@ const AddProduct = () => {
     const files = Array.from(e.target.files);
     
     try {
-      // Validate and process images to base64
-      const processedImages = await processMultipleFiles(files);
+      // Convert files to base64 without any processing - keep original quality
+      const processedImages = [];
+      
+      for (const file of files) {
+        // Simple validation
+        if (file.size > 15 * 1024 * 1024) {
+          throw new Error(`الملف ${file.name} كبير جداً. الحد الأقصى 15 ميجابايت`);
+        }
+        
+        // Convert to base64 without any processing
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        processedImages.push(base64);
+      }
+      
       setImages(processedImages);
       
       Swal.fire({
         icon: 'success',
         title: 'تم تحميل الصور بنجاح',
-        text: `تم معالجة ${processedImages.length} صورة وضغطها`,
+        text: `تم تحميل ${processedImages.length} صورة بالجودة الأصلية`,
         timer: 2000,
         showConfirmButton: false
       });
@@ -122,6 +139,19 @@ const AddProduct = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
+      console.log('🔑 Token from localStorage:', token ? 'Token exists' : 'No token found');
+      console.log('🔑 Token length:', token?.length || 0);
+      console.log('🔑 Actual token value:', token);
+      
+      if (!token) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Authentication Required',
+          text: 'Please login first to add products.',
+          confirmButtonColor: '#dc2626'
+        });
+        return;
+      }
       
       // Send JSON data with base64 images
       const productData = {
@@ -137,13 +167,19 @@ const AddProduct = () => {
 
       console.log('🚀 Sending product data:', productData);
       console.log('📡 API URL:', getApiUrl(API_ENDPOINTS.PRODUCTS));
+      console.log('🖼️ Images count:', images.length);
+      console.log('🖼️ First image preview:', images[0]?.substring(0, 50) + '...');
+      
+      const headers = {
+        'x-auth-token': token,
+        'Content-Type': 'application/json'
+      };
+      
+      console.log('📋 Headers being sent:', headers);
       
       const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS), {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(productData),
       });
       
@@ -168,12 +204,31 @@ const AddProduct = () => {
         });
         setImages([]);
       } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to add product. Please try again.',
-          confirmButtonColor: '#dc2626'
-        });
+        // Get error message from server
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.log('❌ Server error:', errorData);
+        
+        if (response.status === 401) {
+          // Token expired or invalid - redirect to login
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminUser');
+          
+          Swal.fire({
+            icon: 'warning',
+            title: 'Session Expired',
+            text: 'Please login again to continue.',
+            confirmButtonColor: '#dc2626'
+          }).then(() => {
+            window.location.href = '/admin/login';
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorData.message || 'Failed to add product. Please try again.',
+            confirmButtonColor: '#dc2626'
+          });
+        }
       }
     } catch (error) {
       Swal.fire({
@@ -327,6 +382,8 @@ const AddProduct = () => {
           <label className="block text-sm font-medium text-gray-700 font-cairo">
             Product Images
           </label>
+          
+          
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
