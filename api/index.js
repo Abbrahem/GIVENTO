@@ -1,42 +1,18 @@
+// Load environment variables
+require('dotenv').config();
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const sharp = require('sharp');
 
 // Import required modules for Vercel serverless
 const { parse } = require('url');
 
-// Image compression and base64 conversion utility
+// Simple image to base64 conversion without any processing (keeps original quality)
 const processImageToBase64 = async (buffer, mimetype) => {
   try {
-    let processedBuffer;
-    
-    // Compress and resize image using Sharp
-    if (mimetype.includes('jpeg') || mimetype.includes('jpg')) {
-      processedBuffer = await sharp(buffer)
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-    } else if (mimetype.includes('png')) {
-      processedBuffer = await sharp(buffer)
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .png({ quality: 80 })
-        .toBuffer();
-    } else if (mimetype.includes('webp')) {
-      processedBuffer = await sharp(buffer)
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
-    } else {
-      // Convert other formats to JPEG
-      processedBuffer = await sharp(buffer)
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-    }
-    
-    // Convert to base64
-    const base64String = `data:${mimetype};base64,${processedBuffer.toString('base64')}`;
+    // Convert to base64 without any processing - keep original quality
+    const base64String = `data:${mimetype};base64,${buffer.toString('base64')}`;
     return base64String;
   } catch (error) {
     console.error('Error processing image:', error);
@@ -153,23 +129,33 @@ const authenticateAdmin = (req) => {
     console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
     console.log('🔑 JWT_SECRET length:', process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0);
     
-    // Log all headers for debugging (but limit size)
-    const headersToLog = { ...req.headers };
-    if (headersToLog.authorization) {
-      headersToLog.authorization = headersToLog.authorization.substring(0, 20) + '...';
-    }
-    console.log('📋 Headers:', JSON.stringify(headersToLog, null, 2));
-    
+    // Check for token in multiple places
     const authHeader = req.headers.authorization;
-    console.log('📋 Auth header exists:', !!authHeader);
-    console.log('📋 Auth header starts with Bearer:', authHeader ? authHeader.startsWith('Bearer ') : false);
+    const xAuthToken = req.headers['x-auth-token'];
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('❌ No valid auth header');
-      return { isValid: false, error: 'No token provided' };
+    console.log('📋 All headers:', JSON.stringify(req.headers, null, 2));
+    console.log('📋 Auth header exists:', !!authHeader);
+    console.log('📋 Auth header value:', authHeader);
+    console.log('📋 x-auth-token exists:', !!xAuthToken);
+    console.log('📋 x-auth-token value:', xAuthToken);
+    
+    let token = null;
+    
+    // Try x-auth-token first (our preferred method)
+    if (xAuthToken) {
+      token = xAuthToken;
+      console.log('✅ Using x-auth-token');
+    } 
+    // Fallback to Authorization header
+    else if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+      console.log('✅ Using Authorization Bearer token');
     }
     
-    const token = authHeader.split(' ')[1];
+    if (!token) {
+      console.log('❌ No token found in headers');
+      return { isValid: false, error: 'No token, authorization denied' };
+    }
     console.log('🎫 Token length:', token ? token.length : 0);
     console.log('🎫 Token first 10 chars:', token ? token.substring(0, 10) + '...' : 'None');
     
@@ -181,17 +167,32 @@ const authenticateAdmin = (req) => {
     console.log('🔐 Attempting to verify token...');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('✅ Token decoded successfully');
-    console.log('👤 User exists in token:', !!decoded.user);
-    console.log('👤 User email:', decoded.user ? decoded.user.email : 'No user in token');
-    console.log('🔒 Is Admin:', decoded.user ? decoded.user.isAdmin : 'No user data');
+    console.log('👤 Decoded token:', JSON.stringify(decoded, null, 2));
     
-    if (!decoded.user || !decoded.user.isAdmin) {
+    // Handle different token formats
+    let isAdmin = false;
+    let userInfo = null;
+    
+    if (decoded.user && decoded.user.isAdmin) {
+      // New format: { user: { isAdmin: true, email: "..." } }
+      isAdmin = decoded.user.isAdmin;
+      userInfo = decoded.user;
+    } else if (decoded.role === 'admin') {
+      // Old format: { userId: "...", role: "admin" }
+      isAdmin = true;
+      userInfo = { id: decoded.userId, isAdmin: true, email: 'admin@givento.com' };
+    }
+    
+    console.log('🔒 Is Admin:', isAdmin);
+    console.log('👤 User info:', userInfo);
+    
+    if (!isAdmin) {
       console.log('❌ User is not admin');
       return { isValid: false, error: 'Admin access required' };
     }
     
     console.log('✅ Authentication successful');
-    return { isValid: true, user: decoded.user };
+    return { isValid: true, user: userInfo };
   } catch (error) {
     console.error('❌ Authentication error:', error.message);
     console.error('❌ Authentication error type:', error.name);
@@ -292,9 +293,12 @@ const handler = async (req, res) => {
       }
       if (req.method === 'POST') {
         console.log('🔍 Creating product - checking authentication');
+        console.log('🔍 About to call authenticateAdmin...');
         
         // Check authentication
         const auth = authenticateAdmin(req);
+        console.log('🔍 Authentication result:', auth);
+        
         if (!auth.isValid) {
           console.log('❌ Authentication failed:', auth.error);
           return res.status(401).json({ message: auth.error });
