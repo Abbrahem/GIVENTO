@@ -1,3 +1,6 @@
+// Load environment variables
+require('dotenv').config();
+
 const mongoose = require('mongoose');
 
 // Product Schema
@@ -43,20 +46,62 @@ const connectDB = async () => {
 
 // Authentication middleware
 const authenticateAdmin = (req) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { isValid: false, error: 'No token provided' };
-  }
-  
-  const token = authHeader.split(' ')[1];
   try {
+    console.log('🔐 Authenticating admin in products API...');
+    
+    // Check for token in multiple places
+    const authHeader = req.headers.authorization;
+    const xAuthToken = req.headers['x-auth-token'];
+    
+    console.log('📋 Auth header exists:', !!authHeader);
+    console.log('📋 x-auth-token exists:', !!xAuthToken);
+    
+    let token = null;
+    
+    // Try x-auth-token first (our preferred method)
+    if (xAuthToken) {
+      token = xAuthToken;
+      console.log('✅ Using x-auth-token');
+    } 
+    // Fallback to Authorization header
+    else if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+      console.log('✅ Using Authorization Bearer token');
+    }
+    
+    if (!token) {
+      console.log('❌ No token found in headers');
+      return { isValid: false, error: 'No token, authorization denied' };
+    }
+    
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded.user || !decoded.user.isAdmin) {
+    console.log('✅ Token decoded successfully');
+    console.log('👤 Decoded token:', JSON.stringify(decoded, null, 2));
+    
+    // Handle different token formats
+    let isAdmin = false;
+    let userInfo = null;
+    
+    if (decoded.user && decoded.user.isAdmin) {
+      // New format: { user: { isAdmin: true, email: "..." } }
+      isAdmin = decoded.user.isAdmin;
+      userInfo = decoded.user;
+    } else if (decoded.role === 'admin') {
+      // Old format: { userId: "...", role: "admin" }
+      isAdmin = true;
+      userInfo = { id: decoded.userId, isAdmin: true, email: 'admin@givento.com' };
+    }
+    
+    if (!isAdmin) {
+      console.log('❌ User is not admin');
       return { isValid: false, error: 'Admin access required' };
     }
-    return { isValid: true, user: decoded.user };
+    
+    console.log('✅ Authentication successful');
+    return { isValid: true, user: userInfo };
   } catch (error) {
+    console.error('❌ Authentication error:', error.message);
     return { isValid: false, error: 'Invalid token' };
   }
 };
@@ -65,7 +110,7 @@ const handler = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -119,3 +164,4 @@ const handler = async (req, res) => {
 };
 
 module.exports = handler;
+
