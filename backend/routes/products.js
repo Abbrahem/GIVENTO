@@ -64,38 +64,33 @@ router.get('/:id', async (req, res) => {
 });
 
 // @route   POST /api/products
-// @desc    Create new product
+// @desc    Create new product with JSON (base64 images)
 // @access  Private (Admin only)
-router.post('/', auth, upload.array('images', 10), async (req, res) => {
+router.post('/', (req, res, next) => {
+  console.log('🚨 POST /api/products - REQUEST RECEIVED!');
+  console.log('🚨 Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('🚨 Body keys:', Object.keys(req.body || {}));
+  next();
+}, auth, async (req, res) => {
+  console.log('🔍 POST /api/products - After auth middleware');
+  console.log('🔍 Request body keys:', Object.keys(req.body));
+  console.log('🔍 Images array length:', req.body.images?.length || 0);
   try {
-    const { name, description, originalPrice, salePrice, category, sizes, colors } = req.body;
+    const { name, description, originalPrice, salePrice, category, sizes, colors, images } = req.body;
     
-    // Process uploaded images to base64
-    const images = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        // Validate image type
-        if (!validateImageFile(file.mimetype)) {
-          return res.status(400).json({ message: `Invalid file type: ${file.mimetype}. Only JPEG, PNG, WebP, and GIF are allowed.` });
-        }
-        
-        try {
-          // Compress and convert to base64
-          const base64Image = await processImageToBase64(file.buffer, file.mimetype);
-          images.push(base64Image);
-        } catch (error) {
-          return res.status(400).json({ message: `Failed to process image: ${file.originalname}` });
-        }
-      }
-    }
-    
-    if (images.length === 0) {
+    // Validate that images are provided and are base64 strings
+    if (!images || !Array.isArray(images) || images.length === 0) {
       return res.status(400).json({ message: 'At least one image is required' });
     }
+    
+    // Validate base64 images
+    for (const image of images) {
+      if (!image.startsWith('data:image/')) {
+        return res.status(400).json({ message: 'Invalid image format. Images must be base64 encoded.' });
+      }
+    }
 
-    // Parse sizes and colors if they're strings
-    const parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
-    const parsedColors = typeof colors === 'string' ? JSON.parse(colors) : colors;
+    console.log('✅ Images validation passed');
 
     const product = new Product({
       name,
@@ -103,8 +98,8 @@ router.post('/', auth, upload.array('images', 10), async (req, res) => {
       originalPrice: parseFloat(originalPrice),
       salePrice: parseFloat(salePrice),
       category,
-      sizes: parsedSizes || [],
-      colors: parsedColors || [],
+      sizes: sizes || [],
+      colors: colors || [],
       images
     });
 
