@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { initializeFacebookPixel, checkPixelStatus } from './utils/facebookPixel';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -14,6 +15,21 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
+  useEffect(() => {
+    // Initialize Facebook Pixel when app loads
+    console.log('🚀 App loaded, initializing Facebook Pixel...');
+    
+    // Wait a bit for the pixel script to load
+    setTimeout(() => {
+      initializeFacebookPixel();
+      
+      // Check status after initialization
+      setTimeout(() => {
+        checkPixelStatus();
+      }, 1000);
+    }, 1000);
+  }, []);
+
   return (
     <CartProvider>
       <Router>

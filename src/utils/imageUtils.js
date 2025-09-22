@@ -136,4 +136,3 @@ export const getImageUrl = (imageData) => {
   // Default placeholder
   return '/placeholder-image.jpg';
 };
-

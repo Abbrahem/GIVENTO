@@ -2,9 +2,26 @@
 import axios from 'axios';
 import { getValidToken } from './auth';
 
-// Create axios instance
+// Create axios instance with fallback URLs
+const getBaseURL = () => {
+  // Try environment variable first
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Production fallback URLs
+  const fallbackUrls = [
+    'https://giventoo-eg.vercel.app',
+    'https://givento-api.vercel.app',
+    'https://givento-backend.vercel.app'
+  ];
+  
+  // Return first fallback for now
+  return fallbackUrls[0];
+};
+
 const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://giventoo-eg.vercel.app',
+  baseURL: getBaseURL(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
@@ -40,6 +57,22 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     console.error('❌ API Response Error:', error.response?.status, error.config?.url);
+    console.error('❌ Error details:', error.message);
+    
+    // Handle network errors
+    if (error.code === 'ERR_NAME_NOT_RESOLVED' || error.code === 'ERR_NETWORK') {
+      console.error('🌐 Network/DNS Error - Check internet connection and domain');
+      
+      // Show user-friendly error
+      const errorMessage = 'خطأ في الاتصال بالخادم. يرجى التحقق من الاتصال بالإنترنت والمحاولة مرة أخرى.';
+      
+      // You can show a toast or alert here
+      if (window.showErrorToast) {
+        window.showErrorToast(errorMessage);
+      } else {
+        console.error('Network Error:', errorMessage);
+      }
+    }
     
     if (error.response?.status === 401) {
       console.log('🔐 Unauthorized - clearing token');

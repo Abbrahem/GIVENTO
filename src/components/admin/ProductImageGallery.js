@@ -62,11 +62,7 @@ const ProductImageGallery = ({ images, productName, onClose }) => {
               }`}
               onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
             />
-            
-            {/* Zoom Indicator */}
-            <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-cairo opacity-0 group-hover:opacity-100 transition-opacity">
-              {isZoomed ? 'انقر للتصغير' : 'انقر للتكبير'}
-            </div>
+          
 
             {/* Navigation Arrows */}
             {images.length > 1 && (

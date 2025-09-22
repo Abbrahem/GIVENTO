@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AddProduct from '../components/admin/AddProduct';
 import ManageProducts from '../components/admin/ManageProducts';
 import ManageOrders from '../components/admin/ManageOrders';
+import NetworkStatus from '../components/NetworkStatus';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('add-product');
@@ -83,6 +84,13 @@ const AdminDashboard = () => {
           {ActiveComponent && <ActiveComponent />}
         </div>
       </main>
+      
+      {/* Network Status Monitor */}
+      <NetworkStatus onStatusChange={(status) => {
+        if (!status.apiConnected && status.apiConnected !== null) {
+          console.warn('⚠️ API Connection Lost - Check network or server status');
+        }
+      }} />
     </div>
   );
 };

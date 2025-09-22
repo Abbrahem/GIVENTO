@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 import { getApiUrl, API_ENDPOINTS } from '../../config/api';
+import { runNetworkDiagnostics, retryWithBackoff } from '../../utils/networkUtils';
 
 const AddProduct = () => {
   const [formData, setFormData] = useState({
@@ -177,14 +178,27 @@ const AddProduct = () => {
       
       console.log('📋 Headers being sent:', headers);
       
-      const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS), {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(productData),
-      });
+      // Use retry mechanism for network requests
+      const makeRequest = async () => {
+        const response = await fetch(getApiUrl(API_ENDPOINTS.PRODUCTS), {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(productData),
+        });
+        
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response ok:', response.ok);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('📥 Response error:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        return response;
+      };
       
-      console.log('📥 Response status:', response.status);
-      console.log('📥 Response ok:', response.ok);
+      const response = await retryWithBackoff(makeRequest, 3, 1000);
 
       if (response.ok) {
         Swal.fire({
@@ -203,40 +217,53 @@ const AddProduct = () => {
           colors: []
         });
         setImages([]);
-      } else {
-        // Get error message from server
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        console.log('❌ Server error:', errorData);
-        
-        if (response.status === 401) {
-          // Token expired or invalid - redirect to login
-          localStorage.removeItem('adminToken');
-          localStorage.removeItem('adminUser');
-          
-          Swal.fire({
-            icon: 'warning',
-            title: 'Session Expired',
-            text: 'Please login again to continue.',
-            confirmButtonColor: '#dc2626'
-          }).then(() => {
-            window.location.href = '/admin/login';
-          });
-        } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: errorData.message || 'Failed to add product. Please try again.',
-            confirmButtonColor: '#dc2626'
-          });
-        }
       }
     } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Network Error',
-        text: 'Please check your connection and try again.',
-        confirmButtonColor: '#dc2626'
-      });
+      console.error('❌ Request failed:', error);
+      
+      // Check if it's a network error
+      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+        // Run network diagnostics
+        console.log('🔍 Running network diagnostics...');
+        const diagnostics = await runNetworkDiagnostics();
+        
+        let errorMessage = 'خطأ في الاتصال بالخادم. ';
+        
+        if (!diagnostics.internetConnection) {
+          errorMessage += 'يرجى التحقق من الاتصال بالإنترنت.';
+        } else {
+          errorMessage += 'يرجى المحاولة مرة أخرى لاحقاً.';
+        }
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'خطأ في الشبكة',
+          text: errorMessage,
+          confirmButtonColor: '#dc2626',
+          footer: '<small>تم تشغيل فحص الشبكة - تحقق من وحدة التحكم للتفاصيل</small>'
+        });
+      } else if (error.message.includes('401')) {
+        // Authentication error
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+        
+        Swal.fire({
+          icon: 'warning',
+          title: 'انتهت صلاحية الجلسة',
+          text: 'يرجى تسجيل الدخول مرة أخرى.',
+          confirmButtonColor: '#dc2626'
+        }).then(() => {
+          window.location.href = '/admin/login';
+        });
+      } else {
+        // General error
+        Swal.fire({
+          icon: 'error',
+          title: 'خطأ',
+          text: error.message || 'فشل في إضافة المنتج. يرجى المحاولة مرة أخرى.',
+          confirmButtonColor: '#dc2626'
+        });
+      }
     } finally {
       setLoading(false);
     }
