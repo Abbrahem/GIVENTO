@@ -20,8 +20,8 @@ const AddProduct = () => {
   
   const sizeOptions = {
     't-shirt': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    'pants': ['28', '30', '32', '34', '36', '38', '40'],
-    'shorts': ['28', '30', '32', '34', '36', '38', '40'],
+    'pants': ['XS', 'S', 'M', 'L', 'XL', 'XXL' ],
+    'shorts': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     'cap': ['One Size'],
     'zip-up': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     'hoodies': ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
@@ -29,8 +29,8 @@ const AddProduct = () => {
   };
 
   const colorOptions = [
-    'Off-white', 'Gray', 'Mint gray', 'Baby blue', 'White', 'Black', 
-    'Green', 'Blue', 'Beige', 'Red', 'Brown', 'Pink'
+    'Off-white', 'Gray', 'Mint gren', 'Baby blue', 'White', 'Black', 
+    'Green', 'Blue', 'Beige', 'Red', 'Brown', 'Pink','white-gray', 'shany','batrol-blue',
   ];
 
   const getSizeOptions = () => {

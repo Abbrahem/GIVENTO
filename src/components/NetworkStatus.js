@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { testApiConnection, tryFallbackUrls } from '../config/api';
 import { runNetworkDiagnostics } from '../utils/networkUtils';
 
@@ -10,7 +10,7 @@ const NetworkStatus = ({ onStatusChange }) => {
     testing: false
   });
 
-  const checkNetworkStatus = async () => {
+  const checkNetworkStatus = useCallback(async () => {
     setStatus(prev => ({ ...prev, testing: true }));
     
     try {
@@ -48,7 +48,7 @@ const NetworkStatus = ({ onStatusChange }) => {
         lastCheck: new Date().toLocaleTimeString('ar-EG')
       }));
     }
-  };
+  }, [onStatusChange]);
 
   useEffect(() => {
     // Initial check
@@ -75,7 +75,7 @@ const NetworkStatus = ({ onStatusChange }) => {
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
     };
-  }, []);
+  }, [checkNetworkStatus]);
 
   const getStatusColor = () => {
     if (status.testing) return 'bg-yellow-500';

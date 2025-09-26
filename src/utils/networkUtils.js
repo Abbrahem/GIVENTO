@@ -81,10 +81,12 @@ export const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => 
   }
 };
 
-export default {
+const NetworkUtils = {
   checkUrlReachability,
   testApiEndpoints,
   checkInternetConnection,
   runNetworkDiagnostics,
   retryWithBackoff
 };
+
+export default NetworkUtils;

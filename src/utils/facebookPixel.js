@@ -104,7 +104,7 @@ export const checkPixelStatus = () => {
   return status;
 };
 
-export default {
+const FacebookPixelUtils = {
   initializeFacebookPixel,
   trackPixelEvent,
   trackPurchase,
@@ -113,3 +113,5 @@ export default {
   trackInitiateCheckout,
   checkPixelStatus
 };
+
+export default FacebookPixelUtils;

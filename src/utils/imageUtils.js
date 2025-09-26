@@ -14,8 +14,8 @@ export const convertFileToBase64 = (file) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // Keep original dimensions up to 2048px (very high quality)
-        const maxSize = 2048;
+        // Keep original dimensions up to 3000px (ultra high quality)
+        const maxSize = 3000;
         let { width, height } = img;
         
         // Only resize if image is extremely large
@@ -44,8 +44,8 @@ export const convertFileToBase64 = (file) => {
         // Draw image with high quality
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to base64 with high quality (0.95 = 95% quality)
-        const highQualityBase64 = canvas.toDataURL(file.type, 0.95);
+        // Convert to base64 with ultra high quality (0.98 = 98% quality)
+        const highQualityBase64 = canvas.toDataURL(file.type, 0.98);
         resolve(highQualityBase64);
       };
       
@@ -93,11 +93,13 @@ export const validateImageFile = (file) => {
 export const processMultipleFiles = async (files, useOriginalQuality = false) => {
   const processedImages = [];
   
-  for (const file of files) {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     try {
       validateImageFile(file);
-      // Use original quality or high quality processing
-      const base64 = useOriginalQuality 
+      // Always use original quality for the first image to avoid pixelation
+      const shouldUseOriginal = useOriginalQuality || i === 0;
+      const base64 = shouldUseOriginal 
         ? await convertFileToBase64Original(file)
         : await convertFileToBase64(file);
       processedImages.push(base64);

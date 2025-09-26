@@ -125,7 +125,7 @@ const ProductImageSlider = ({ images, productName }) => {
       <div className="relative">
         <div 
           ref={sliderRef}
-          className="overflow-hidden bg-black rounded-2xl cursor-pointer select-none relative group shadow-xl"
+          className="overflow-hidden bg-gray-100 rounded-2xl cursor-pointer select-none relative group shadow-xl"
           style={{ height: '75vh', minHeight: '450px' }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -142,11 +142,11 @@ const ProductImageSlider = ({ images, productName }) => {
             style={{ transform: `translateX(-${currentImage * 100}%)` }}
           >
             {images.map((image, index) => (
-              <div key={index} className="w-full h-full flex-shrink-0 flex items-center justify-center overflow-hidden">
+              <div key={index} className="w-full h-full flex-shrink-0 overflow-hidden">
                 <img
                   src={getImageUrl(image)}
                   alt={`${productName} ${index + 1}`}
-                  className={`max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105`}
+                  className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105`}
                   draggable={false}
                 />
               </div>
@@ -190,7 +190,7 @@ const ProductImageSlider = ({ images, productName }) => {
 
           {/* Image Counter */}
           {images.length > 1 && (
-            <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-cairo">
+            <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm font-cairo">
               {currentImage + 1} / {images.length}
             </div>
           )}
