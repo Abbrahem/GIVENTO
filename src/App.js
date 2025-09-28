@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { initializeFacebookPixel, checkPixelStatus } from './utils/facebookPixel';
+import { initializeTikTokPixel, checkTikTokStatus } from './utils/tiktokPixel';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -22,10 +23,14 @@ function App() {
     // Wait a bit for the pixel script to load
     setTimeout(() => {
       initializeFacebookPixel();
+      // Initialize TikTok Pixel as well
+      console.log('🚀 Initializing TikTok Pixel...');
+      initializeTikTokPixel();
       
       // Check status after initialization
       setTimeout(() => {
         checkPixelStatus();
+        checkTikTokStatus();
       }, 1000);
     }, 1000);
   }, []);
